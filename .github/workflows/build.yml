@@ -28,7 +28,6 @@ jobs:
       run: |
         python3 lang_compiler.py --make_header --base lng_tmpl/_base.yml include/lang_autogen.h
         python3 lang_compiler.py --make_source --base lng_tmpl/_base.yml src/lang_internal.c
-        make languages
 
     - name: Build
       run: make NOT_PACKED=1
