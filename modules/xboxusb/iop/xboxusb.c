@@ -38,6 +38,7 @@ typedef struct xboxusb_device
     u8 status;
     u8 epIn;
     u8 epOut;
+    u8 interfaceNum;
     u8 packetSize;
     u8 reportLen;
     u8 seq;
@@ -47,6 +48,7 @@ typedef struct xboxusb_device
 
 static xboxusb_device xboxpad;
 static u8 usb_buf[RAW_REPORT_SIZE + 32] __attribute((aligned(4))) = {0};
+static u8 usb_ctrl_buf[32] __attribute((aligned(4))) = {0};
 static int usb_result = 1;
 static int rpc_buf[RPC_REPORT_SIZE] __attribute((aligned(16)));
 
@@ -55,6 +57,7 @@ static const u8 xboxone_s_init[] = {0x05, 0x20, 0x00, 0x0F, 0x06};
 static const u8 xboxone_led_on[] = {0x0A, 0x20, 0x00, 0x03, 0x00, 0x01, 0x14};
 static const u8 xboxone_auth_done[] = {0x06, 0x20, 0x00, 0x02, 0x01, 0x00};
 static const u8 xbox360_led_p1[] = {0x01, 0x03, 0x02};
+static const u8 xbox360_init_cmd[] = {0x01, 0x03, 0x10};
 
 static int usb_probe(int devId);
 static int usb_connect(int devId);
@@ -148,6 +151,7 @@ static int usb_connect(int devId)
     if (interface == NULL)
         interface = (UsbInterfaceDescriptor *)((char *)config + config->bLength);
 
+    xboxpad.interfaceNum = interface->bInterfaceNumber;
     epCount = interface->bNumEndpoints;
     desc = (char *)interface + interface->bLength;
     len = config->wTotalLength - (desc - (char *)config);
@@ -299,12 +303,13 @@ static void xboxusb_send_init(void)
 
     if (xboxpad.pid == 0x028E || xboxpad.pid == 0x0719 || xboxpad.pid == 0x028F || xboxpad.pid == 0x02A1 || xboxpad.pid == 0x0291) {
         // Third-party Xbox 360 controllers require this magic control message to start sending data
-        // We use usb_buf because stack variables are not DMA safe on IOP!
-        xboxusb_memset(usb_buf, 0, 20);
-        UsbControlTransfer(xboxpad.controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_buf, NULL, NULL);
+        // We use a dedicated usb_ctrl_buf to prevent DMA corruption from polling transfers
+        xboxusb_memset(usb_ctrl_buf, 0, 20);
+        UsbControlTransfer(xboxpad.controlEndp, 0xC1, 0x01, 0x0100, xboxpad.interfaceNum, 20, usb_ctrl_buf, NULL, NULL);
 
         // Xbox 360 Controller / Wireless Receiver initialization
         xboxusb_send_packet_raw(xbox360_led_p1, sizeof(xbox360_led_p1));
+        xboxusb_send_packet_raw(xbox360_init_cmd, sizeof(xbox360_init_cmd));
     } else {
         // Xbox One Controller initialization
         xboxusb_send_packet(xboxone_power_on, sizeof(xboxone_power_on));
