@@ -5,6 +5,9 @@ on:
     branches: [ "**" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,6 +23,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Configure Git
       run: git config --global --add safe.directory '*'
@@ -30,14 +34,24 @@ jobs:
         python3 lang_compiler.py --make_source --base lng_tmpl/_base.yml src/lang_internal.c
 
     - name: Build
-      run: make NOT_PACKED=1 > build_log.txt 2>&1
+      run: make NOT_PACKED=1 > build_log.txt 2>&1 || true
 
-    - name: Upload Logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: Build-Logs
-        path: build_log.txt
+    - name: Push log to repo on failure
+      run: |
+        if ! grep -q "Building Open PS2 Loader" build_log.txt || grep -q "Error" build_log.txt || grep -q "Stop" build_log.txt; then
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI"
+          git add build_log.txt
+          git commit -m "Upload build log" || true
+          git push origin main || true
+        fi
+
+    - name: Check Build Success
+      run: |
+        if [ ! -f "opl.elf" ] && [ ! -f "OPNPS2LD.ELF" ]; then
+          echo "Build failed!"
+          exit 1
+        fi
 
     - name: Upload compiled ELF
       uses: actions/upload-artifact@v4
