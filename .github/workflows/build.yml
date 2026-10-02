@@ -30,7 +30,14 @@ jobs:
         python3 lang_compiler.py --make_source --base lng_tmpl/_base.yml src/lang_internal.c
 
     - name: Build
-      run: make NOT_PACKED=1
+      run: make NOT_PACKED=1 > build_log.txt 2>&1
+
+    - name: Upload Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Build-Logs
+        path: build_log.txt
 
     - name: Upload compiled ELF
       uses: actions/upload-artifact@v4
