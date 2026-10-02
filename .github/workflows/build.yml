@@ -10,8 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     container: ps2dev/ps2dev:latest
     steps:
-    - name: Install git
-      run: apk add --no-cache git zip
+    - name: Install dependencies
+      run: |
+        if command -v apk >/dev/null 2>&1; then
+          apk add --no-cache git zip
+        elif command -v apt-get >/dev/null 2>&1; then
+          apt-get update && apt-get install -y git zip
+        fi
 
     - name: Checkout code
       uses: actions/checkout@v4
@@ -21,7 +26,7 @@ jobs:
     - name: Build
       run: |
         make clean
-        make
+        make NOT_PACKED=1
 
     - name: Upload compiled ELF
       uses: actions/upload-artifact@v4
