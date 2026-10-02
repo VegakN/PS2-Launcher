@@ -267,11 +267,17 @@ static void xboxusb_send_init(void)
     if ((xboxpad.status & XBOXUSB_STATE_CONFIGURED) == 0 || (xboxpad.status & XBOXUSB_STATE_INIT_SENT))
         return;
 
-    xboxusb_send_packet(xboxone_power_on, sizeof(xboxone_power_on));
-    if (xboxpad.vid == 0x045E && xboxpad.pid == 0x02EA)
-        xboxusb_send_packet(xboxone_s_init, sizeof(xboxone_s_init));
-    xboxusb_send_packet(xboxone_led_on, sizeof(xboxone_led_on));
-    xboxusb_send_packet(xboxone_auth_done, sizeof(xboxone_auth_done));
+    if (xboxpad.pid == 0x028E || xboxpad.pid == 0x0719 || xboxpad.pid == 0x028F || xboxpad.pid == 0x02A1 || xboxpad.pid == 0x0291) {
+        // Xbox 360 Controller / Wireless Receiver initialization
+        xboxusb_send_packet_raw(xbox360_led_p1, sizeof(xbox360_led_p1));
+    } else {
+        // Xbox One Controller initialization
+        xboxusb_send_packet(xboxone_power_on, sizeof(xboxone_power_on));
+        if (xboxpad.vid == 0x045E && xboxpad.pid == 0x02EA)
+            xboxusb_send_packet(xboxone_s_init, sizeof(xboxone_s_init));
+        xboxusb_send_packet(xboxone_led_on, sizeof(xboxone_led_on));
+        xboxusb_send_packet(xboxone_auth_done, sizeof(xboxone_auth_done));
+    }
 
     xboxpad.status |= XBOXUSB_STATE_INIT_SENT;
 }
