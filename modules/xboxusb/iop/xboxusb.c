@@ -154,7 +154,7 @@ static int usb_connect(int devId)
 
     while (len > 0 && epCount > 0) {
         UsbEndpointDescriptor *ep = (UsbEndpointDescriptor *)desc;
-        if (ep->bDescriptorType == USB_DT_ENDPOINT) {
+        if (((UsbInterfaceDescriptor *)ep)->bDescriptorType == USB_DT_ENDPOINT) {
             if (ep->bmAttributes == USB_ENDPOINT_XFER_INT && (ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN) {
                 xboxpad.interruptEndp = UsbOpenEndpointAligned(devId, ep);
                 xboxpad.epIn = ep->bEndpointAddress;
@@ -164,7 +164,7 @@ static int usb_connect(int devId)
                 xboxpad.epOut = ep->bEndpointAddress;
             }
             epCount--;
-        } else if (ep->bDescriptorType == USB_DT_INTERFACE) {
+        } else if (((UsbInterfaceDescriptor *)ep)->bDescriptorType == USB_DT_INTERFACE) {
             break;
         }
         desc += ep->bLength;
