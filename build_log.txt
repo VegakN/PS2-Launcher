@@ -1,0 +1,305 @@
+Building Open PS2 Loader v1.2.0-Beta-14-f7945af...
+-Interface
+make[1]: Entering directory '/__w/PS2-Launcher/PS2-Launcher'
+src/menusys.c:1979:12: warning: 'ps5SmbOperationActive' defined but not used [-Wunused-function]
+ 1979 | static int ps5SmbOperationActive(void)
+      |            ^~~~~~~~~~~~~~~~~~~~~
+src/menusys.c:617:13: warning: 'refreshMenuPosition' defined but not used [-Wunused-function]
+  617 | static void refreshMenuPosition(void)
+      |             ^~~~~~~~~~~~~~~~~~~
+src/system.c: In function 'sysLaunchLoaderElf':
+src/system.c:919:28: warning: assignment discards 'const' qualifier from pointer target type [-Wdiscarded-qualifiers]
+  919 |         config->gCheatList = GetCheatsList();
+      |                            ^
+src/themes.c: In function 'drawPS5Launcher':
+src/themes.c:1376:5: warning: unused variable 'gPS5SettingsSel' [-Wunused-variable]
+ 1376 | int gPS5SettingsSel = 0;
+      |     ^~~~~~~~~~~~~~~
+src/themes.c: At top level:
+src/themes.c:1735:13: warning: 'joinPath' defined but not used [-Wunused-function]
+ 1735 | static void joinPath(char *dst, size_t maxLen, const char *dir, const char *file) {
+      |             ^~~~~~~~
+src/themes.c:1433:13: warning: 'gNetDebugMsg' defined but not used [-Wunused-variable]
+ 1433 | static char gNetDebugMsg[256] = "Net Status: System ready.";
+      |             ^~~~~~~~~~~~
+src/hddsupport.c: In function 'hddLoadModules':
+src/hddsupport.c:213:17: warning: unused variable 'xret' [-Wunused-variable]
+  213 |             int xret = sysLoadModuleBuffer(&xhdd_irx, size_xhdd_irx, 6, "-hdpro");
+      |                 ^~~~
+src/hddsupport.c:220:17: warning: unused variable 'xret' [-Wunused-variable]
+  220 |             int xret = sysLoadModuleBuffer(&xhdd_irx, size_xhdd_irx, 0, NULL);
+      |                 ^~~~
+src/hddsupport.c: In function 'hddUpdateGameList':
+src/hddsupport.c:477:17: warning: unused variable 'cacheRet' [-Wunused-variable]
+  477 |             int cacheRet = hddUpdateGameListCache(&hddGames, &hddGamesNew);
+      |                 ^~~~~~~~
+src/hddsupport.c: At top level:
+src/hddsupport.c:408:13: warning: 'hddGenerateMockGames' defined but not used [-Wunused-function]
+  408 | static void hddGenerateMockGames(hdl_games_list_t *list)
+      |             ^~~~~~~~~~~~~~~~~~~~
+src/sound.c: In function 'sfxPlay':
+src/sound.c:255:13: warning: unused variable 'ret' [-Wunused-variable]
+  255 |         int ret = audsrv_ch_play_adpcm(id, &sfx[id]);
+      |             ^~~
+-EE core
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/ee_core'
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/main.c -o obj/main.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/syshook.c -o obj/syshook.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/iopmgr.c -o obj/iopmgr.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/modmgr.c -o obj/modmgr.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/util.c -o obj/util.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/patches.c -o obj/patches.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/patches_asm.S -o obj/patches_asm.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/padhook.c -o obj/padhook.o
+In file included from src/padhook.c:37:
+src/padhook.c: In function 'IGR_Intc_Handler':
+include/coreconfig.h:72:56: warning: unused variable 'config' [-Wunused-variable]
+   72 | #define USE_LOCAL_EECORE_CONFIG struct EECoreConfig_t *config = &g_ee_core_config;
+      |                                                        ^~~~~~
+src/padhook.c:272:5: note: in expansion of macro 'USE_LOCAL_EECORE_CONFIG'
+  272 |     USE_LOCAL_EECORE_CONFIG;
+      |     ^~~~~~~~~~~~~~~~~~~~~~~
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/cd_igr_rpc.c -o obj/cd_igr_rpc.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/tlb.c -o obj/tlb.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/asm.S -o obj/asm.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/crt0.S -o obj/crt0.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/gsm_engine.S -o obj/gsm_engine.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/gsm_api.c -o obj/gsm_api.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/dve_reg.S -o obj/dve_reg.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/cheat_engine.S -o obj/cheat_engine.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -c src/cheat_api.c -o obj/cheat_api.o
+mips64r5900el-ps2-elf-gcc -D_EE -Os -G0 -Wall -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -Iinclude -I. -DPADEMU -nostartfiles -nostdlib -Tlinkfile -L/usr/local/ps2dev/ps2sdk/ee/lib -s -Wl,-Map,ee_core.map -o ee_core.elf obj/main.o obj/syshook.o obj/iopmgr.o obj/modmgr.o obj/util.o obj/patches.o obj/patches_asm.o obj/padhook.o obj/cd_igr_rpc.o obj/tlb.o obj/asm.o obj/crt0.o obj/gsm_engine.o obj/gsm_api.o obj/dve_reg.o obj/cheat_engine.o obj/cheat_api.o -lpatches -lkernel -lgcc
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/ee_core'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/imgdrv'
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz  -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c imgdrv.c -o obj/imgdrv.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
+cat imports.lst >> obj/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz  -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz  -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o imgdrv.notiopmod.elf obj/imgdrv.o obj/imports.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o imgdrv.notiopmod.stripped.elf imgdrv.notiopmod.elf
+iopfixup --rb --irx1 --allow-zero-text -o imgdrv.irx imgdrv.notiopmod.stripped.elf
+rm obj/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/imgdrv'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+printf '%s\n' "#include \"irx.h\"" > obj.bdm/build-exports.c
+cat exports.tab >> obj.bdm/build-exports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.bdm/build-exports.c -o obj.bdm/exports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c cdvdman.c -o obj.bdm/cdvdman.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c ioops.c -o obj.bdm/ioops.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c ncmd.c -o obj.bdm/ncmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c scmd.c -o obj.bdm/scmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c searchfile.c -o obj.bdm/searchfile.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c streaming.c -o obj.bdm/streaming.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c ioplib_util.c -o obj.bdm/ioplib_util.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c smsutils.S -o obj.bdm/smsutils.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj.bdm/build-imports.c
+cat imports.lst >> obj.bdm/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.bdm/build-imports.c -o obj.bdm/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c ../../isofs/zso.c -o obj.bdm/../../isofs/zso.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c ../../isofs/lz4.c -o obj.bdm/../../isofs/lz4.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -c device-bdm.c -o obj.bdm/device-bdm.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o bdm_cdvdman.notiopmod.elf obj.bdm/exports.o obj.bdm/cdvdman.o obj.bdm/ioops.o obj.bdm/ncmd.o obj.bdm/scmd.o obj.bdm/searchfile.o obj.bdm/streaming.o obj.bdm/ioplib_util.o obj.bdm/smsutils.o obj.bdm/imports.o obj.bdm/../../isofs/zso.o obj.bdm/../../isofs/lz4.o obj.bdm/device-bdm.o -nostdlib -dc -r  -L/usr/local/ps2dev/ps2sdk/iop/lib -lbdm
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o bdm_cdvdman.notiopmod.stripped.elf bdm_cdvdman.notiopmod.elf
+iopfixup --rb --irx1 -o bdm_cdvdman.irx bdm_cdvdman.notiopmod.stripped.elf
+rm obj.bdm/build-imports.c obj.bdm/build-exports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+printf '%s\n' "#include \"irx.h\"" > obj.bdm_ata/build-exports.c
+cat exports.tab >> obj.bdm_ata/build-exports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.bdm_ata/build-exports.c -o obj.bdm_ata/exports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c cdvdman.c -o obj.bdm_ata/cdvdman.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ioops.c -o obj.bdm_ata/ioops.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ncmd.c -o obj.bdm_ata/ncmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c scmd.c -o obj.bdm_ata/scmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c searchfile.c -o obj.bdm_ata/searchfile.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c streaming.c -o obj.bdm_ata/streaming.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ioplib_util.c -o obj.bdm_ata/ioplib_util.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c smsutils.S -o obj.bdm_ata/smsutils.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj.bdm_ata/build-imports.c
+cat imports.lst >> obj.bdm_ata/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.bdm_ata/build-imports.c -o obj.bdm_ata/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c device-bdm.c -o obj.bdm_ata/device-bdm.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c atad.c -o obj.bdm_ata/atad.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c dev9.c -o obj.bdm_ata/dev9.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DBDM_DRIVER -DUSE_BDM_ATA -D__USE_DEV9 -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o bdm_ata_cdvdman.notiopmod.elf obj.bdm_ata/exports.o obj.bdm_ata/cdvdman.o obj.bdm_ata/ioops.o obj.bdm_ata/ncmd.o obj.bdm_ata/scmd.o obj.bdm_ata/searchfile.o obj.bdm_ata/streaming.o obj.bdm_ata/ioplib_util.o obj.bdm_ata/smsutils.o obj.bdm_ata/imports.o obj.bdm_ata/../../isofs/zso.o obj.bdm_ata/../../isofs/lz4.o obj.bdm_ata/device-bdm.o obj.bdm_ata/atad.o obj.bdm_ata/dev9.o -nostdlib -dc -r  -L/usr/local/ps2dev/ps2sdk/iop/lib -lbdm
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o bdm_ata_cdvdman.notiopmod.stripped.elf bdm_ata_cdvdman.notiopmod.elf
+iopfixup --rb --irx1 -o bdm_ata_cdvdman.irx bdm_ata_cdvdman.notiopmod.stripped.elf
+rm obj.bdm_ata/build-exports.c obj.bdm_ata/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+printf '%s\n' "#include \"irx.h\"" > obj.smb/build-exports.c
+cat exports.tab >> obj.smb/build-exports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.smb/build-exports.c -o obj.smb/exports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c cdvdman.c -o obj.smb/cdvdman.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ioops.c -o obj.smb/ioops.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ncmd.c -o obj.smb/ncmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c scmd.c -o obj.smb/scmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c searchfile.c -o obj.smb/searchfile.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c streaming.c -o obj.smb/streaming.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ioplib_util.c -o obj.smb/ioplib_util.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c smsutils.S -o obj.smb/smsutils.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj.smb/build-imports.c
+cat imports.lst >> obj.smb/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.smb/build-imports.c -o obj.smb/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c device-smb.c -o obj.smb/device-smb.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c smb.c -o obj.smb/smb.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c dev9.c -o obj.smb/dev9.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../network/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DSMB_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o smb_cdvdman.notiopmod.elf obj.smb/exports.o obj.smb/cdvdman.o obj.smb/ioops.o obj.smb/ncmd.o obj.smb/scmd.o obj.smb/searchfile.o obj.smb/streaming.o obj.smb/ioplib_util.o obj.smb/smsutils.o obj.smb/imports.o obj.smb/../../isofs/zso.o obj.smb/../../isofs/lz4.o obj.smb/device-smb.o obj.smb/smb.o obj.smb/dev9.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o smb_cdvdman.notiopmod.stripped.elf smb_cdvdman.notiopmod.elf
+iopfixup --rb --irx1 -o smb_cdvdman.irx smb_cdvdman.notiopmod.stripped.elf
+rm obj.smb/build-exports.c obj.smb/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+printf '%s\n' "#include \"irx.h\"" > obj.hdd/build-exports.c
+cat exports.tab >> obj.hdd/build-exports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.hdd/build-exports.c -o obj.hdd/exports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c cdvdman.c -o obj.hdd/cdvdman.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ioops.c -o obj.hdd/ioops.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ncmd.c -o obj.hdd/ncmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c scmd.c -o obj.hdd/scmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c searchfile.c -o obj.hdd/searchfile.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c streaming.c -o obj.hdd/streaming.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c ioplib_util.c -o obj.hdd/ioplib_util.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c smsutils.S -o obj.hdd/smsutils.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj.hdd/build-imports.c
+cat imports.lst >> obj.hdd/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.hdd/build-imports.c -o obj.hdd/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c device-hdd.c -o obj.hdd/device-hdd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c atad.c -o obj.hdd/atad.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -c dev9.c -o obj.hdd/dev9.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -D__USE_DEV9 -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o hdd_cdvdman.notiopmod.elf obj.hdd/exports.o obj.hdd/cdvdman.o obj.hdd/ioops.o obj.hdd/ncmd.o obj.hdd/scmd.o obj.hdd/searchfile.o obj.hdd/streaming.o obj.hdd/ioplib_util.o obj.hdd/smsutils.o obj.hdd/imports.o obj.hdd/../../isofs/zso.o obj.hdd/../../isofs/lz4.o obj.hdd/device-hdd.o obj.hdd/atad.o obj.hdd/dev9.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o hdd_cdvdman.notiopmod.stripped.elf hdd_cdvdman.notiopmod.elf
+iopfixup --rb --irx1 -o hdd_cdvdman.irx hdd_cdvdman.notiopmod.stripped.elf
+rm obj.hdd/build-exports.c obj.hdd/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+printf '%s\n' "#include \"irx.h\"" > obj.hdpro/build-exports.c
+cat exports.tab >> obj.hdpro/build-exports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.hdpro/build-exports.c -o obj.hdpro/exports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c cdvdman.c -o obj.hdpro/cdvdman.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c ioops.c -o obj.hdpro/ioops.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c ncmd.c -o obj.hdpro/ncmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c scmd.c -o obj.hdpro/scmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c searchfile.c -o obj.hdpro/searchfile.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c streaming.c -o obj.hdpro/streaming.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c ioplib_util.c -o obj.hdpro/ioplib_util.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c smsutils.S -o obj.hdpro/smsutils.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj.hdpro/build-imports.c
+cat imports.lst >> obj.hdpro/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.hdpro/build-imports.c -o obj.hdpro/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c device-hdd.c -o obj.hdpro/device-hdd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -c hdpro_atad.c -o obj.hdpro/hdpro_atad.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DHDD_DRIVER -DHD_PRO -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o hdd_hdpro_cdvdman.notiopmod.elf obj.hdpro/exports.o obj.hdpro/cdvdman.o obj.hdpro/ioops.o obj.hdpro/ncmd.o obj.hdpro/scmd.o obj.hdpro/searchfile.o obj.hdpro/streaming.o obj.hdpro/ioplib_util.o obj.hdpro/smsutils.o obj.hdpro/imports.o obj.hdpro/../../isofs/zso.o obj.hdpro/../../isofs/lz4.o obj.hdpro/device-hdd.o obj.hdpro/hdpro_atad.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o hdd_hdpro_cdvdman.notiopmod.stripped.elf hdd_hdpro_cdvdman.notiopmod.elf
+iopfixup --rb --irx1 -o hdd_hdpro_cdvdman.irx hdd_hdpro_cdvdman.notiopmod.stripped.elf
+rm obj.hdpro/build-imports.c obj.hdpro/build-exports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdman'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdfsv'
+printf '%s\n' "#include \"irx.h\"" > obj/build-exports.c
+cat exports.tab >> obj/build-exports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-exports.c -o obj/exports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c cdvdfsv.c -o obj/cdvdfsv.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c searchfile.c -o obj/searchfile.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c ncmd.c -o obj/ncmd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c scmd.c -o obj/scmd.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
+cat imports.lst >> obj/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o cdvdfsv.notiopmod.elf obj/exports.o obj/cdvdfsv.o obj/searchfile.o obj/ncmd.o obj/scmd.o obj/imports.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o cdvdfsv.notiopmod.stripped.elf cdvdfsv.notiopmod.elf
+iopfixup --rb --irx1 -o cdvdfsv.irx cdvdfsv.notiopmod.stripped.elf
+rm obj/build-exports.c obj/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/iopcore/cdvdfsv'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/network/SMSTCPIP'
+rm -r -f SMSTCPIP.irx obj/exports.o obj/ps2ip.o obj/inet.o obj/ip.o obj/ip_addr.o obj/ip_frag.o obj/etharp.o obj/tcp_in.o obj/tcp_out.o obj/tcp.o obj/tcpip.o obj/mem.o obj/api_lib.o obj/api_msg.o obj/sockets.o obj/netif.o obj/udp.o obj/memp.o obj/icmp.o obj/pbuf.o obj/timers.o obj/imports.o obj/  
+printf '%s\n' "#include \"irx.h\"" > obj/build-exports.c
+cat exports.tab >> obj/build-exports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -fno-toplevel-reorder -c obj/build-exports.c -o obj/exports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c ps2ip.c -o obj/ps2ip.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c inet.S -o obj/inet.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c ip.c -o obj/ip.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c ip_addr.c -o obj/ip_addr.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c ip_frag.c -o obj/ip_frag.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c etharp.c -o obj/etharp.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c tcp_in.c -o obj/tcp_in.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c tcp_out.c -o obj/tcp_out.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c tcp.c -o obj/tcp.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c tcpip.c -o obj/tcpip.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c mem.c -o obj/mem.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c api_lib.c -o obj/api_lib.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c api_msg.c -o obj/api_msg.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c sockets.c -o obj/sockets.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c netif.c -o obj/netif.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c udp.c -o obj/udp.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c memp.c -o obj/memp.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c icmp.c -o obj/icmp.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c pbuf.c -o obj/pbuf.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -c timers.c -o obj/timers.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
+cat imports.lst >> obj/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -Iinclude -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DLWIP_NOASSERT -DINGAME_DRIVER -DINTERRUPT_CTX_INPKT -msoft-float -mno-explicit-relocs -mno-memcpy -Wno-attributes -Wno-array-bounds -Wno-unused-but-set-variable -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o SMSTCPIP.notiopmod.elf obj/exports.o obj/ps2ip.o obj/inet.o obj/ip.o obj/ip_addr.o obj/ip_frag.o obj/etharp.o obj/tcp_in.o obj/tcp_out.o obj/tcp.o obj/tcpip.o obj/mem.o obj/api_lib.o obj/api_msg.o obj/sockets.o obj/netif.o obj/udp.o obj/memp.o obj/icmp.o obj/pbuf.o obj/timers.o obj/imports.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o SMSTCPIP.notiopmod.stripped.elf SMSTCPIP.notiopmod.elf
+iopfixup --rb --irx1 -o SMSTCPIP.irx SMSTCPIP.notiopmod.stripped.elf
+rm obj/build-exports.c obj/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/network/SMSTCPIP'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/network/smap-ingame'
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c main.c -o obj/main.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c smap.c -o obj/smap.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c xfer.c -o obj/xfer.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
+cat imports.lst >> obj/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o smap.notiopmod.elf obj/main.o obj/smap.o obj/xfer.o obj/imports.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o smap.notiopmod.stripped.elf smap.notiopmod.elf
+iopfixup --rb --irx1 --allow-zero-text -o smap.irx smap.notiopmod.stripped.elf
+rm obj/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/network/smap-ingame'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/network/smbinit'
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c main.c -o obj/main.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c smbauth.c -o obj/smbauth.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c des.c -o obj/des.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c md4.c -o obj/md4.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
+cat imports.lst >> obj/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../iopcore/common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o smbinit.notiopmod.elf obj/main.o obj/smbauth.o obj/des.o obj/md4.o obj/imports.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o smbinit.notiopmod.stripped.elf smbinit.notiopmod.elf
+iopfixup --rb --irx1 --allow-zero-text -o smbinit.irx smbinit.notiopmod.stripped.elf
+rm obj/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/network/smbinit'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/bdmevent'
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c main.c -o obj/main.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
+cat imports.lst >> obj/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o bdmevent.notiopmod.elf obj/main.o obj/imports.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o bdmevent.notiopmod.stripped.elf bdmevent.notiopmod.elf
+iopfixup --rb --irx1 --allow-zero-text -o bdmevent.irx bdmevent.notiopmod.stripped.elf
+rm obj/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/bdmevent'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/hdd/xhdd'
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c xhdd.c -o obj/xhdd.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c xatad.c -o obj/xatad.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c hdpro.c -o obj/hdpro.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
+cat imports.lst >> obj/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../common -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o xhdd.notiopmod.elf obj/xhdd.o obj/xatad.o obj/hdpro.o obj/imports.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o xhdd.notiopmod.stripped.elf xhdd.notiopmod.elf
+iopfixup --rb --irx1 --allow-zero-text -o xhdd.irx xhdd.notiopmod.stripped.elf
+rm obj/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/hdd/xhdd'
+make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/vmc/genvmc'
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz  -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c genvmc.c -o obj/genvmc.o
+printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
+cat imports.lst >> obj/build-imports.c
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz  -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
+mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz  -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o genvmc.notiopmod.elf obj/genvmc.o obj/imports.o -nostdlib -dc -r  
+mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o genvmc.notiopmod.stripped.elf genvmc.notiopmod.elf
+iopfixup --rb --irx1 --allow-zero-text -o genvmc.irx genvmc.notiopmod.stripped.elf
+rm obj/build-imports.c
+make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/vmc/genvmc'
+make[1]: *** No rule to make target 'modules/network/lwNBD', needed by 'modules/network/lwNBD/lwnbdsvr.irx'.  Stop.
+make[1]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher'
+make: *** [Makefile:230: all] Error 2
