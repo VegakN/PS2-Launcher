@@ -28,6 +28,9 @@ jobs:
     - name: Configure Git
       run: git config --global --add safe.directory '*'
 
+    - name: Download lwNBD
+      run: make download_lwNBD
+
     - name: Generate Language Files
       run: |
         python3 lang_compiler.py --make_header --base lng_tmpl/_base.yml include/lang_autogen.h
