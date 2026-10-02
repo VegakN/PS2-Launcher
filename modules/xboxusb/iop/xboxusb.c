@@ -133,47 +133,36 @@ static int usb_connect(int devId)
 
     char *desc = (char *)config + config->bLength;
     int len = config->wTotalLength - config->bLength;
+    int current_interface = 0;
 
-    interface = NULL;
     while (len > 0) {
-        UsbInterfaceDescriptor *intf = (UsbInterfaceDescriptor *)desc;
-        if (intf->bDescriptorType == USB_DT_INTERFACE) {
-            if (intf->bInterfaceClass == 0xFF) {
-                interface = intf;
-                break;
+        u8 bLength = desc[0];
+        u8 bDescriptorType = desc[1];
+        
+        if (bLength == 0) break;
+
+        if (bDescriptorType == USB_DT_INTERFACE) {
+            UsbInterfaceDescriptor *intf = (UsbInterfaceDescriptor *)desc;
+            current_interface = intf->bInterfaceNumber;
+        } 
+        else if (bDescriptorType == USB_DT_ENDPOINT) {
+            UsbEndpointDescriptor *ep = (UsbEndpointDescriptor *)desc;
+            
+            if (ep->bmAttributes == USB_ENDPOINT_XFER_INT) {
+                if ((ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN && xboxpad.interruptEndp < 0) {
+                    xboxpad.interruptEndp = UsbOpenEndpointAligned(devId, ep);
+                    xboxpad.epIn = ep->bEndpointAddress;
+                    xboxpad.packetSize = ep->wMaxPacketSizeLB | (ep->wMaxPacketSizeHB << 8);
+                    xboxpad.interfaceNum = current_interface;
+                } else if ((ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_OUT && xboxpad.interruptOutEndp < 0) {
+                    xboxpad.interruptOutEndp = UsbOpenEndpointAligned(devId, ep);
+                    xboxpad.epOut = ep->bEndpointAddress;
+                }
             }
         }
-        desc += intf->bLength;
-        len -= intf->bLength;
-        if (intf->bLength == 0) break;
-    }
-
-    if (interface == NULL)
-        interface = (UsbInterfaceDescriptor *)((char *)config + config->bLength);
-
-    xboxpad.interfaceNum = interface->bInterfaceNumber;
-    epCount = interface->bNumEndpoints;
-    desc = (char *)interface + interface->bLength;
-    len = config->wTotalLength - (desc - (char *)config);
-
-    while (len > 0 && epCount > 0) {
-        UsbEndpointDescriptor *ep = (UsbEndpointDescriptor *)desc;
-        if (((UsbInterfaceDescriptor *)ep)->bDescriptorType == USB_DT_ENDPOINT) {
-            if (ep->bmAttributes == USB_ENDPOINT_XFER_INT && (ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN) {
-                xboxpad.interruptEndp = UsbOpenEndpointAligned(devId, ep);
-                xboxpad.epIn = ep->bEndpointAddress;
-                xboxpad.packetSize = ep->wMaxPacketSizeLB | (ep->wMaxPacketSizeHB << 8);
-            } else if (ep->bmAttributes == USB_ENDPOINT_XFER_INT && (ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_OUT) {
-                xboxpad.interruptOutEndp = UsbOpenEndpointAligned(devId, ep);
-                xboxpad.epOut = ep->bEndpointAddress;
-            }
-            epCount--;
-        } else if (((UsbInterfaceDescriptor *)ep)->bDescriptorType == USB_DT_INTERFACE) {
-            break;
-        }
-        desc += ep->bLength;
-        len -= ep->bLength;
-        if (ep->bLength == 0) break;
+        
+        desc += bLength;
+        len -= bLength;
     }
 
     if (xboxpad.controlEndp >= 0)
