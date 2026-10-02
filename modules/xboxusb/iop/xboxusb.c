@@ -213,9 +213,12 @@ static void usb_config_set(int result, int count, void *arg)
         xboxpad.status |= XBOXUSB_STATE_CONFIGURED | XBOXUSB_STATE_RUNNING;
 }
 
+static int usb_result_bytes = 0;
+
 static void usb_data_cb(int resultCode, int bytes, void *arg)
 {
     usb_result = resultCode;
+    usb_result_bytes = bytes;
     SignalSema(xboxpad.transferSema);
 }
 
@@ -269,8 +272,9 @@ static void xboxusb_send_init(void)
 
     if (xboxpad.pid == 0x028E || xboxpad.pid == 0x0719 || xboxpad.pid == 0x028F || xboxpad.pid == 0x02A1 || xboxpad.pid == 0x0291) {
         // Third-party Xbox 360 controllers require this magic control message to start sending data
-        u8 dummy[20];
-        UsbControlTransfer(xboxpad.controlEndp, 0xC1, 0x01, 0x0100, 0x00, sizeof(dummy), dummy, NULL, NULL);
+        // We use usb_buf because stack variables are not DMA safe on IOP!
+        xboxusb_memset(usb_buf, 0, 20);
+        UsbControlTransfer(xboxpad.controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_buf, NULL, NULL);
 
         // Xbox 360 Controller / Wireless Receiver initialization
         xboxusb_send_packet_raw(xbox360_led_p1, sizeof(xbox360_led_p1));
@@ -294,13 +298,17 @@ static void xboxusb_poll_thread(void *arg)
         if (xboxpad.interruptEndp >= 0 && (xboxpad.status & XBOXUSB_STATE_CONFIGURED)) {
             xboxusb_send_init();
 
-            ret = UsbInterruptTransfer(xboxpad.interruptEndp, usb_buf, RAW_REPORT_SIZE, usb_data_cb, NULL);
+            int pktSize = xboxpad.packetSize;
+            if (pktSize == 0 || pktSize > RAW_REPORT_SIZE)
+                pktSize = RAW_REPORT_SIZE;
+
+            ret = UsbInterruptTransfer(xboxpad.interruptEndp, usb_buf, pktSize, usb_data_cb, NULL);
             if (ret == USB_RC_OK) {
                 WaitSema(xboxpad.transferSema);
                 if (usb_result == USB_RC_OK && xboxusb_is_input_packet(usb_buf)) {
                     WaitSema(xboxpad.sema);
-                    xboxpad.reportLen = RAW_REPORT_SIZE;
-                    xboxusb_memcpy(xboxpad.report, usb_buf, RAW_REPORT_SIZE);
+                    xboxpad.reportLen = usb_result_bytes;
+                    xboxusb_memcpy(xboxpad.report, usb_buf, usb_result_bytes);
                     xboxusb_translate_input(xboxpad.report, &xboxpad.ds2);
                     SignalSema(xboxpad.sema);
                 }
