@@ -14,7 +14,7 @@ jobs:
         shell: sh
     steps:
     - name: Install dependencies
-      run: apk add --no-cache git zip bash make python3
+      run: apk add --no-cache git zip bash make python3 py3-yaml
 
     - name: Checkout code
       uses: actions/checkout@v4
@@ -24,10 +24,14 @@ jobs:
     - name: Configure Git
       run: git config --global --add safe.directory '*'
 
-    - name: Build
+    - name: Generate Language Files
       run: |
+        python3 lang_compiler.py --make_header --base lng_tmpl/_base.yml include/lang_autogen.h
+        python3 lang_compiler.py --make_source --base lng_tmpl/_base.yml src/lang_internal.c
         make languages
-        make NOT_PACKED=1
+
+    - name: Build
+      run: make NOT_PACKED=1
 
     - name: Upload compiled ELF
       uses: actions/upload-artifact@v4
