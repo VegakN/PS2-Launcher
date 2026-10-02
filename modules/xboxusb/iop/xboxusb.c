@@ -268,6 +268,10 @@ static void xboxusb_send_init(void)
         return;
 
     if (xboxpad.pid == 0x028E || xboxpad.pid == 0x0719 || xboxpad.pid == 0x028F || xboxpad.pid == 0x02A1 || xboxpad.pid == 0x0291) {
+        // Third-party Xbox 360 controllers require this magic control message to start sending data
+        u8 dummy[20];
+        UsbControlTransfer(xboxpad.controlEndp, 0xC1, 0x01, 0x0100, 0x00, sizeof(dummy), dummy, NULL, NULL);
+
         // Xbox 360 Controller / Wireless Receiver initialization
         xboxusb_send_packet_raw(xbox360_led_p1, sizeof(xbox360_led_p1));
     } else {
