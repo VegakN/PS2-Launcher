@@ -202,6 +202,8 @@ enum eL2CAP {
 #define l2cap_interrupt_channel ((l2cap_buf[6] | (l2cap_buf[7] << 8)) == interrupt_dcid)
 #define l2cap_command_channel   ((l2cap_buf[6] | (l2cap_buf[7] << 8)) == control_dcid)
 
+#ifndef _EHID_ENUM_DEFINED_
+#define _EHID_ENUM_DEFINED_
 enum eHID {
     // {{{
     /* HID event flag */
@@ -209,6 +211,11 @@ enum eHID {
     HID_FLAG_BUTTONS_CHANGED = 0x02,
     HID_FLAG_EXTENSION = 0x04,
     HID_FLAG_COMMAND_SUCCESS = 0x08,
+
+    /* USB HID Transaction Header (THdr) */
+    HID_USB_GET_REPORT_FEATURE = 0x03,
+    HID_USB_SET_REPORT_OUTPUT = 0x02,
+    HID_USB_DATA_INPUT = 0x01,
 
     /* Bluetooth HID Transaction Header (THdr) */
     HID_THDR_GET_REPORT_FEATURE = 0x43,
@@ -229,6 +236,7 @@ enum eHID {
 
     // }}}
 };
+#endif
 
 int ds34bt_init(u8 pads, u8 options);
 int ds34bt_get_status(int port);

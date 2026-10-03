@@ -52,6 +52,8 @@ enum eDS34USBStatus {
     DS34USB_STATE_INIT_SENT = 0x10,
 };
 
+#ifndef _EHID_ENUM_DEFINED_
+#define _EHID_ENUM_DEFINED_
 enum eHID {
     // {{{
     /* HID event flag */
@@ -65,6 +67,12 @@ enum eHID {
     HID_USB_SET_REPORT_OUTPUT = 0x02,
     HID_USB_DATA_INPUT = 0x01,
 
+    /* Bluetooth HID Transaction Header (THdr) */
+    HID_THDR_GET_REPORT_FEATURE = 0x43,
+    HID_THDR_SET_REPORT_OUTPUT = 0x52,
+    HID_THDR_SET_REPORT_FEATURE = 0x53,
+    HID_THDR_DATA_INPUT = 0xa1,
+
     /* Defines of various parameters for PS3 Game controller reports */
     PS3_F4_REPORT_ID = 0xF4,
     PS3_F4_REPORT_LEN = 0x04,
@@ -77,6 +85,7 @@ enum eHID {
     PS4_11_REPORT_LEN = 0x4D,
     // }}}
 };
+#endif
 
 int ds34usb_init(u8 pads, u8 options);
 int ds34usb_get_status(int port);
