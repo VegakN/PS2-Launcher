@@ -770,6 +770,19 @@ static int LEDRumble(u8 *led, u8 lrum, u8 rrum, int pad)
         }
 
         ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, 32, usb_cmd_cb, (void *)pad);
+    } else if (ds34pad[pad].type == XBOX_USB) {
+        if (ds34pad[pad].outEndp >= 0) {
+            usb_buf[0] = 0x00;
+            usb_buf[1] = 0x08;
+            usb_buf[2] = 0x00;
+            usb_buf[3] = lrum;
+            usb_buf[4] = rrum;
+            ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, 8, usb_cmd_cb, (void *)pad);
+        } else {
+            ret = -1;
+        }
+    } else {
+        ret = -1;
     }
 
     ds34pad[pad].oldled[0] = led[0];

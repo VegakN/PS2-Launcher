@@ -311,18 +311,34 @@ static int readPad(struct pad_data_t *pad, int player)
     }
 
 #ifdef PADEMU
-    if (ds34bt_get_status(pad->port) & DS34BT_STATE_RUNNING) {
-        ret = ds34bt_get_data(pad->port, (u8 *)&pad->buttons.btns);
-        ds34bt_set_rumble(pad->port, 0, 0);
+    int bt_port = pad->port;
+    int usb_port = pad->port;
+
+    int bt0_active = (ds34bt_get_status(0) & DS34BT_STATE_RUNNING);
+    int usb0_active = (ds34usb_get_status(0) & DS34USB_STATE_RUNNING);
+
+    if (bt0_active && usb0_active) {
+        if (pad->port == 0) {
+            bt_port = 0;
+            usb_port = -1;
+        } else if (pad->port == 1) {
+            bt_port = 1;
+            usb_port = 0;
+        }
+    }
+
+    if (bt_port >= 0 && (ds34bt_get_status(bt_port) & DS34BT_STATE_RUNNING)) {
+        ret = ds34bt_get_data(bt_port, (u8 *)&pad->buttons.btns);
+        ds34bt_set_rumble(bt_port, 0, 0);
         if (ret != 0) {
             newpdata |= 0xffff ^ pad->buttons.btns;
             padsRead++;
         }
     }
 
-    if (ds34usb_get_status(pad->port) & DS34USB_STATE_RUNNING) {
-        ret = ds34usb_get_data(pad->port, (u8 *)&pad->buttons.btns);
-        ds34usb_set_rumble(pad->port, 0, 0);
+    if (usb_port >= 0 && (ds34usb_get_status(usb_port) & DS34USB_STATE_RUNNING)) {
+        ret = ds34usb_get_data(usb_port, (u8 *)&pad->buttons.btns);
+        ds34usb_set_rumble(usb_port, 0, 0);
         if (ret != 0) {
             newpdata |= 0xffff ^ pad->buttons.btns;
             padsRead++;
