@@ -1,4 +1,4 @@
-Building Open PS2 Loader v1.2.0-Beta-52-677c2d9-dirty...
+Building Open PS2 Loader v1.2.0-Beta-56-0c54771-dirty...
 -Interface
 make[1]: Entering directory '/__w/PS2-Launcher/PS2-Launcher'
 src/menusys.c:1979:12: warning: 'ps5SmbOperationActive' defined but not used [-Wunused-function]
@@ -647,10 +647,17 @@ printf '%s\n' "#include \"irx.h\"" > obj.bt/build-exports.c
 cat exports.tab >> obj.bt/build-exports.c
 mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DUSB -DBT -DUSE_SMSUTILS -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.bt/build-exports.c -o obj.bt/exports.o
 mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DUSB -DBT -DUSE_SMSUTILS -msoft-float -mno-explicit-relocs -c pademu.c -o obj.bt/pademu.o
-In file included from pademu.c:18:
-ds34bt.h:231:1: error: conflicting redefinition of enum 'enum eHID'
-  231 | };
-      | ^
+pademu.c: In function 'get_pad_mapping':
+pademu.c:34:21: error: 'MAX_PORTS' undeclared (first use in this function)
+   34 |     int usb_running[MAX_PORTS];
+      |                     ^~~~~~~~~
+pademu.c:34:21: note: each undeclared identifier is reported only once for each function it appears in
+pademu.c:35:9: warning: unused variable 'bt_running' [-Wunused-variable]
+   35 |     int bt_running[MAX_PORTS];
+      |         ^~~~~~~~~~
+pademu.c:34:9: warning: unused variable 'usb_running' [-Wunused-variable]
+   34 |     int usb_running[MAX_PORTS];
+      |         ^~~~~~~~~~~
 make[2]: *** [/usr/local/ps2dev/ps2sdk/samples/Makefile.iopglobal:109: obj.bt/pademu.o] Error 1
 rm obj.bt/build-exports.c
 make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/pademu'
