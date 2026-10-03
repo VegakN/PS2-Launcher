@@ -294,7 +294,7 @@ int _start(int argc, char *argv[])
         mips_memcpy(&raw_settings, argv[1], 4);
         u8 ports_from_settings = raw_settings & 0xFF;
         if (ports_from_settings != 0)
-            pad_enable = ports_from_settings;
+            pad_enable = ports_from_settings | 0x03;
         else
             pad_enable = 0x0F;
 
