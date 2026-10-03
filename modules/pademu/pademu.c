@@ -11,6 +11,10 @@
 
 #define PAD_STATE_RUNNING 0x08
 
+#ifndef MAX_PORTS
+#define MAX_PORTS 4
+#endif
+
 #ifdef USB
 #include "ds34usb.h"
 #endif
