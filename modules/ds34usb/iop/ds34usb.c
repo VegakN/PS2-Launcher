@@ -492,7 +492,6 @@ static void xboxusb_translate_report(u8 *in, int pad)
         if ((b2 & 0x20) || (b2 & 0x02) || (b3 & 0x02)) buttons |= DS2ButtonStart;
         if ((b2 & 0x40) || (b2 & 0x04)) buttons |= DS2ButtonL3;
         if ((b2 & 0x80) || (b2 & 0x08)) buttons |= DS2ButtonR3;
-    }
     } else { // Raw DInput HID without Report ID
         lx = in[0];
         ly = in[1];
@@ -500,8 +499,14 @@ static void xboxusb_translate_report(u8 *in, int pad)
         ry = in[3];
 
         u8 hat = in[4] & 0x0F;
+        // If in[4] is 0x00 (e.g. unpressed trigger axis on 6-axis gamepad), check if in[6] contains actual hat switch
+        if (in[4] == 0x00 && (in[6] & 0x0F) <= 15) {
+            hat = in[6] & 0x0F;
+        }
+
         u8 b1 = in[5];
         u8 b2 = in[6];
+        u8 b3 = in[7];
 
         if (hat <= 7) {
             switch (hat) {
@@ -525,10 +530,10 @@ static void xboxusb_translate_report(u8 *in, int pad)
         if (b1 & 0x40) { buttons |= DS2ButtonL2; lt = 255; }
         if (b1 & 0x80) { buttons |= DS2ButtonR2; rt = 255; }
 
-        if (b2 & 0x01) buttons |= DS2ButtonSelect;
-        if (b2 & 0x02) buttons |= DS2ButtonStart;
-        if (b2 & 0x04) buttons |= DS2ButtonL3;
-        if (b2 & 0x08) buttons |= DS2ButtonR3;
+        if (b2 & 0x01 || b3 & 0x01) buttons |= DS2ButtonSelect;
+        if (b2 & 0x02 || b3 & 0x02) buttons |= DS2ButtonStart;
+        if (b2 & 0x04 || b3 & 0x04) buttons |= DS2ButtonL3;
+        if (b2 & 0x08 || b3 & 0x08) buttons |= DS2ButtonR3;
     }
 
     u8 right_p = (buttons & DS2ButtonRight) ? 255 : 0;
