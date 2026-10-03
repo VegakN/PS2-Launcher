@@ -775,13 +775,6 @@ int ds34usb_get_data(u8 *dst, int size, int port)
 
     WaitSema(ds34pad[port].sema);
 
-    if (ds34pad[port].type == XBOX_USB) {
-        mips_memcpy(dst, ds34pad[port].data, size);
-        ret = ds34pad[port].analog_btn & 1;
-        SignalSema(ds34pad[port].sema);
-        return ret;
-    }
-
     PollSema(ds34pad[port].sema);
 
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_buf, MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
@@ -866,7 +859,6 @@ int ds34usb_get_model(int port)
 int ds34usb_init(u8 pads, u8 options)
 {
     int pad;
-    iop_thread_t thread;
 
     for (pad = 0; pad < MAX_PADS; pad++) {
         ds34pad[pad].status = 0;
@@ -909,22 +901,6 @@ int ds34usb_init(u8 pads, u8 options)
         DPRINTF("DS34USB: Error registering USB devices\n");
         return 0;
     }
-
-    xbox_poll_sema = CreateMutex(IOP_MUTEX_LOCKED);
-    if (xbox_poll_sema < 0) {
-        DPRINTF("DS34USB: Failed to allocate Xbox poll semaphore.\n");
-        return 0;
-    }
-
-    thread.attr = TH_C;
-    thread.thread = xboxusb_poll_thread;
-    thread.priority = 40;
-    thread.stacksize = 0x800;
-    thread.option = 0;
-
-    xbox_poll_tid = CreateThread(&thread);
-    if (xbox_poll_tid >= 0)
-        StartThread(xbox_poll_tid, NULL);
 
     return 1;
 }
