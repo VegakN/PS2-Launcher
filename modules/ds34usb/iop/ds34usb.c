@@ -890,20 +890,12 @@ void ds34usb_get_data(char *dst, int size, int port)
 
     if (ret == USB_RC_OK) {
         TransferWait(ds34pad[port].sema);
-        if (usb_resulCode == USB_RC_OK && usb_bytes_read >= 5) {
+        if (usb_resulCode == USB_RC_OK) {
             readReport(usb_buf, port);
-        } else {
-            ds34pad[port].data[0] = 0xFF;
-            ds34pad[port].data[1] = 0xFF;
-            mips_memset(&ds34pad[port].data[2], 0x80, 4);
-            mips_memset(&ds34pad[port].data[6], 0x00, 12);
         }
+        usb_resulCode = 1;
     } else {
         DPRINTF("DS34USB: ds34usb_get_data usb transfer error %d\n", ret);
-        ds34pad[port].data[0] = 0xFF;
-        ds34pad[port].data[1] = 0xFF;
-        mips_memset(&ds34pad[port].data[2], 0x80, 4);
-        mips_memset(&ds34pad[port].data[6], 0x00, 12);
     }
 
     mips_memcpy(dst, ds34pad[port].data, size);
@@ -1018,7 +1010,7 @@ int ds34usb_get_status(int port)
         return 0;
 
     WaitSema(ds34pad[port].sema);
-    ret = ds34pad[port].status;
+    ret = ds34pad[port].status | (ds34pad[port].type << 8);
     SignalSema(ds34pad[port].sema);
 
     return ret;

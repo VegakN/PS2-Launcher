@@ -314,8 +314,11 @@ static int readPad(struct pad_data_t *pad, int player)
     int target_bt_port = -1;
     int target_usb_port = -1;
 
-    int u0_type = (ds34usb_get_status(0) & DS34USB_STATE_RUNNING) ? ds34usb_get_type(0) : -1;
-    int u1_type = (ds34usb_get_status(1) & DS34USB_STATE_RUNNING) ? ds34usb_get_type(1) : -1;
+    int s0 = ds34usb_get_status(0);
+    int s1 = ds34usb_get_status(1);
+
+    int u0_type = (s0 & DS34USB_STATE_RUNNING) ? (s0 >> 8) : -1;
+    int u1_type = (s1 & DS34USB_STATE_RUNNING) ? (s1 >> 8) : -1;
 
     int b0_active = (ds34bt_get_status(0) & DS34BT_STATE_RUNNING);
     int b1_active = (ds34bt_get_status(1) & DS34BT_STATE_RUNNING);
