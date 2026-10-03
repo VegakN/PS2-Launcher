@@ -452,7 +452,7 @@ int gFadeDelay;
 int toggleSfx;
 int showCfgPopup;
 #ifdef PADEMU
-int gEnablePadEmu;
+int gEnablePadEmu = 1;
 int gPadEmuSettings;
 int gPadMacroSource;
 int gPadMacroSettings;
