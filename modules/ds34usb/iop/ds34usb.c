@@ -273,10 +273,16 @@ static void usb_release(int pad)
     ds34pad[pad].xbox_seq = 0;
     ds34pad[pad].status = DS34USB_STATE_DISCONNECTED;
 
+    ds34pad[pad].data[0] = 0xFF;
+    ds34pad[pad].data[1] = 0xFF;
+    mips_memset(&ds34pad[pad].data[2], 0x80, 4);
+    mips_memset(&ds34pad[pad].data[6], 0x00, 12);
+
     SignalSema(ds34pad[pad].sema);
 }
 
 static int usb_resulCode;
+static int usb_bytes_read;
 
 static void usb_data_cb(int resultCode, int bytes, void *arg)
 {
@@ -285,6 +291,7 @@ static void usb_data_cb(int resultCode, int bytes, void *arg)
     // DPRINTF("DS34USB: usb_data_cb: res %d, bytes %d, arg %p \n", resultCode, bytes, arg);
 
     usb_resulCode = resultCode;
+    usb_bytes_read = bytes;
 
     SignalSema(ds34pad[pad].sema);
 }
@@ -851,18 +858,39 @@ void ds34usb_get_data(char *dst, int size, int port)
 
     WaitSema(ds34pad[port].sema);
 
+    if (ds34pad[port].devId == -1 || !(ds34pad[port].status & DS34USB_STATE_RUNNING) || ds34pad[port].interruptEndp < 0) {
+        ds34pad[port].data[0] = 0xFF;
+        ds34pad[port].data[1] = 0xFF;
+        mips_memset(&ds34pad[port].data[2], 0x80, 4);
+        mips_memset(&ds34pad[port].data[6], 0x00, 12);
+        mips_memcpy(dst, ds34pad[port].data, size);
+        SignalSema(ds34pad[port].sema);
+        return;
+    }
+
     PollSema(ds34pad[port].sema);
+
+    usb_resulCode = 1;
+    usb_bytes_read = 0;
 
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_buf, MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
         TransferWait(ds34pad[port].sema);
-        if (!usb_resulCode)
+        if (usb_resulCode == USB_RC_OK && usb_bytes_read >= 5) {
             readReport(usb_buf, port);
-
-        usb_resulCode = 1;
+        } else {
+            ds34pad[port].data[0] = 0xFF;
+            ds34pad[port].data[1] = 0xFF;
+            mips_memset(&ds34pad[port].data[2], 0x80, 4);
+            mips_memset(&ds34pad[port].data[6], 0x00, 12);
+        }
     } else {
         DPRINTF("DS34USB: ds34usb_get_data usb transfer error %d\n", ret);
+        ds34pad[port].data[0] = 0xFF;
+        ds34pad[port].data[1] = 0xFF;
+        mips_memset(&ds34pad[port].data[2], 0x80, 4);
+        mips_memset(&ds34pad[port].data[6], 0x00, 12);
     }
 
     mips_memcpy(dst, ds34pad[port].data, size);
