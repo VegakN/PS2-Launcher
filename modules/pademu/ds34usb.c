@@ -108,21 +108,15 @@ static int is_xbox_vendor(u16 vid, u16 pid)
     return 0;
 }
 
-int usb_probe(int devId)
+static int is_gamepad_device(int devId, UsbDeviceDescriptor *device)
 {
-    UsbDeviceDescriptor *device = NULL;
+    UsbConfigDescriptor *config;
 
-    DPRINTF("DS34USB: probe: devId=%i\n", devId);
-
-    device = (UsbDeviceDescriptor *)UsbGetDeviceStaticDescriptor(devId, NULL, USB_DT_DEVICE);
-    if (device == NULL) {
-        DPRINTF("DS34USB: Error - Couldn't get device descriptor\n");
+    if (device == NULL)
         return 0;
-    }
 
-    if (device->idVendor == SONY_VID && (device->idProduct == GUITAR_HERO_PS3_PID || device->idProduct == ROCK_BAND_PS3_PID)) {
+    if (device->idVendor == SONY_VID && (device->idProduct == GUITAR_HERO_PS3_PID || device->idProduct == ROCK_BAND_PS3_PID))
         return 1;
-    }
 
     if (device->idVendor == DS34_VID && (device->idProduct == DS3_PID || device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM))
         return 1;
@@ -130,10 +124,42 @@ int usb_probe(int devId)
     if (is_xbox_vendor(device->idVendor, device->idProduct))
         return 1;
 
-    if (device->bDeviceClass == 0x00 || device->bDeviceClass == 0xFF || device->bDeviceClass == 0x03)
-        return 1;
+    config = (UsbConfigDescriptor *)UsbGetDeviceStaticDescriptor(devId, device, USB_DT_CONFIG);
+    if (config == NULL)
+        return 0;
+
+    u8 *desc = (u8 *)config + config->bLength;
+    int len = config->wTotalLength - config->bLength;
+
+    while (len > 0) {
+        u8 bLength = desc[0];
+        u8 bDescriptorType = desc[1];
+
+        if (bLength == 0) break;
+
+        if (bDescriptorType == USB_DT_INTERFACE) {
+            UsbInterfaceDescriptor *intf = (UsbInterfaceDescriptor *)desc;
+            if (intf->bInterfaceClass == 0x08)
+                return 0;
+            if (intf->bInterfaceClass == 0x03 || (intf->bInterfaceClass == 0xFF && intf->bInterfaceSubClass == 0x5D))
+                return 1;
+        }
+
+        desc += bLength;
+        len -= bLength;
+    }
 
     return 0;
+}
+
+int usb_probe(int devId)
+{
+    UsbDeviceDescriptor *device = NULL;
+
+    DPRINTF("DS34USB: probe: devId=%i\n", devId);
+
+    device = (UsbDeviceDescriptor *)UsbGetDeviceStaticDescriptor(devId, NULL, USB_DT_DEVICE);
+    return is_gamepad_device(devId, device);
 }
 
 int usb_connect(int devId)
@@ -186,7 +212,7 @@ int usb_connect(int devId)
         xbox_axis_center_valid[pad] = 0;
     }
 
-    char *desc = (char *)config + config->bLength;
+    u8 *desc = (u8 *)config + config->bLength;
     int len = config->wTotalLength - config->bLength;
 
     while (len > 0) {
