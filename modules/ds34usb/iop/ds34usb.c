@@ -14,6 +14,13 @@ IRX_ID("ds34usb", 1, 1);
 //#define DPRINTF(x...) printf(x)
 #define DPRINTF(x...)
 
+#define REQ_USB_OUT (USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
+#define REQ_USB_IN  (USB_DIR_IN | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
+
+#define MAX_PADS 2
+
+static void TransferWait(int sema);
+
 #define XBOX_VENDOR_MICROSOFT 0x045E
 #define XBOXUSB_INPUT_PACKET  0x20
 
