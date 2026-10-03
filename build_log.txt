@@ -1,4 +1,4 @@
-Building Open PS2 Loader v1.2.0-Beta-50-9b4288b-dirty...
+Building Open PS2 Loader v1.2.0-Beta-52-677c2d9-dirty...
 -Interface
 make[1]: Entering directory '/__w/PS2-Launcher/PS2-Launcher'
 src/menusys.c:1979:12: warning: 'ps5SmbOperationActive' defined but not used [-Wunused-function]
@@ -647,26 +647,10 @@ printf '%s\n' "#include \"irx.h\"" > obj.bt/build-exports.c
 cat exports.tab >> obj.bt/build-exports.c
 mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DUSB -DBT -DUSE_SMSUTILS -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj.bt/build-exports.c -o obj.bt/exports.o
 mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DUSB -DBT -DUSE_SMSUTILS -msoft-float -mno-explicit-relocs -c pademu.c -o obj.bt/pademu.o
-In file included from pademu.c:16:
+In file included from pademu.c:18:
 ds34bt.h:231:1: error: conflicting redefinition of enum 'enum eHID'
   231 | };
       | ^
-pademu.c: In function 'pademu_get_status':
-pademu.c:38:13: error: 'PAD_STATE_RUNNING' undeclared (first use in this function); did you mean 'DS34BT_STATE_RUNNING'?
-   38 |     if (s & PAD_STATE_RUNNING)
-      |             ^~~~~~~~~~~~~~~~~
-      |             DS34BT_STATE_RUNNING
-pademu.c:38:13: note: each undeclared identifier is reported only once for each function it appears in
-pademu.c: In function 'pademu_get_data':
-pademu.c:62:36: error: 'PAD_STATE_RUNNING' undeclared (first use in this function); did you mean 'DS34BT_STATE_RUNNING'?
-   62 |     if (ds34usb_get_status(port) & PAD_STATE_RUNNING)
-      |                                    ^~~~~~~~~~~~~~~~~
-      |                                    DS34BT_STATE_RUNNING
-pademu.c: In function 'pademu_set_rumble':
-pademu.c:75:36: error: 'PAD_STATE_RUNNING' undeclared (first use in this function); did you mean 'DS34BT_STATE_RUNNING'?
-   75 |     if (ds34usb_get_status(port) & PAD_STATE_RUNNING)
-      |                                    ^~~~~~~~~~~~~~~~~
-      |                                    DS34BT_STATE_RUNNING
 make[2]: *** [/usr/local/ps2dev/ps2sdk/samples/Makefile.iopglobal:109: obj.bt/pademu.o] Error 1
 rm obj.bt/build-exports.c
 make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/pademu'
