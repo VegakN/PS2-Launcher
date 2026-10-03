@@ -224,19 +224,6 @@ int usb_connect(int devId)
     return 0;
 }
 
-    if (ds34pad[pad].interruptEndp < 0 || ds34pad[pad].outEndp < 0) {
-        usb_release(pad);
-        return 1;
-    }
-
-    ds34pad[pad].status |= DS34USB_STATE_CONNECTED;
-
-    UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
-    SignalSema(ds34pad[pad].sema);
-
-    return 0;
-}
-
 int usb_disconnect(int devId)
 {
     u8 pad;
