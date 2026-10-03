@@ -1,4 +1,4 @@
-Building Open PS2 Loader v1.2.0-Beta-56-0c54771-dirty...
+Building Open PS2 Loader v1.2.0-Beta-58-0c72fc8-dirty...
 -Interface
 make[1]: Entering directory '/__w/PS2-Launcher/PS2-Launcher'
 src/menusys.c:1979:12: warning: 'ps5SmbOperationActive' defined but not used [-Wunused-function]
@@ -37,6 +37,10 @@ src/hddsupport.c: At top level:
 src/hddsupport.c:408:13: warning: 'hddGenerateMockGames' defined but not used [-Wunused-function]
   408 | static void hddGenerateMockGames(hdl_games_list_t *list)
       |             ^~~~~~~~~~~~~~~~~~~~
+src/opl.c: In function 'coverDownloadImageToDisk':
+src/opl.c:2289:32: warning: unused variable 'pngSig' [-Wunused-variable]
+ 2289 |     static const unsigned char pngSig[8] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+      |                                ^~~~~~
 src/sound.c: In function 'sfxPlay':
 src/sound.c:255:13: warning: unused variable 'ret' [-Wunused-variable]
   255 |         int ret = audsrv_ch_play_adpcm(id, &sfx[id]);
