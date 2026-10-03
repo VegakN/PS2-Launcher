@@ -9,6 +9,8 @@
 #include "pademu.h"
 #include "padmacro.h"
 
+#define PAD_STATE_RUNNING 0x08
+
 #ifdef USB
 #include "ds34usb.h"
 #endif

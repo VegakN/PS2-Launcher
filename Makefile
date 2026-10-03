@@ -530,13 +530,13 @@ $(EE_ASM_DIR)xboxusb.c: modules/xboxusb/iop/xboxusb.irx | $(EE_ASM_DIR)
 	$(BIN2C) $< $@ $(*F)_irx
 
 modules/pademu/bt_pademu.irx: modules/pademu
-	$(MAKE) -C $< USE_BT=1 USE_USB=1
+	$(MAKE) -C $< USE_BT=1 USE_USB=1 IOP_BIN=bt_pademu.irx IOP_OBJS_DIR=obj.bt/
 
 $(EE_ASM_DIR)bt_pademu.c: modules/pademu/bt_pademu.irx
 	$(BIN2C) $< $@ $(*F)_irx
 
 modules/pademu/usb_pademu.irx: modules/pademu
-	$(MAKE) -C $< USE_USB=1 USE_BT=1
+	$(MAKE) -C $< USE_USB=1 USE_BT=1 IOP_BIN=usb_pademu.irx IOP_OBJS_DIR=obj.usb/
 
 $(EE_ASM_DIR)usb_pademu.c: modules/pademu/usb_pademu.irx
 	$(BIN2C) $< $@ $(*F)_irx
