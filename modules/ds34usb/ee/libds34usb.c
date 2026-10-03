@@ -136,6 +136,19 @@ int ds34usb_get_data(int port, u8 *data)
     return ret;
 }
 
+int ds34usb_get_type(int port)
+{
+    if (!ds34usb_inited)
+        return -1;
+
+    rpcbuf[0] = port;
+
+    if (SifCallRpc(&ds34usb, 9, 0, rpcbuf, 1, rpcbuf, 1, NULL, NULL) == 0)
+        return (signed char)rpcbuf[0];
+
+    return -1;
+}
+
 int ds34usb_reset()
 {
     if (!ds34usb_inited)

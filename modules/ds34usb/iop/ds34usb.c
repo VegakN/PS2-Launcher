@@ -1024,6 +1024,21 @@ int ds34usb_get_status(int port)
     return ret;
 }
 
+int ds34usb_get_type(int port)
+{
+    int ret = -1;
+
+    if (port >= MAX_PADS)
+        return -1;
+
+    WaitSema(ds34pad[port].sema);
+    if (ds34pad[port].status & DS34USB_STATE_RUNNING)
+        ret = ds34pad[port].type;
+    SignalSema(ds34pad[port].sema);
+
+    return ret;
+}
+
 void ds34usb_init(u8 pads)
 {
     u8 pad;
@@ -1051,6 +1066,7 @@ static int rpc_buf[64] __attribute((aligned(16)));
 #define DS34USB_SET_LED    6
 #define DS34USB_GET_DATA   7
 #define DS34USB_RESET      8
+#define DS34USB_GET_TYPE   9
 
 #define DS34USB_BIND_RPC_ID 0x18E3878E
 
@@ -1088,6 +1104,9 @@ void *rpc_sf(int cmd, void *data, int size)
             break;
         case DS34USB_RESET:
             ds34usb_reset();
+            break;
+        case DS34USB_GET_TYPE:
+            *(signed char *)data = ds34usb_get_type(*(u8 *)data);
             break;
         default:
             break;

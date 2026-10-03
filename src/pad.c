@@ -311,34 +311,57 @@ static int readPad(struct pad_data_t *pad, int player)
     }
 
 #ifdef PADEMU
-    int bt_port = pad->port;
-    int usb_port = pad->port;
+    int target_bt_port = -1;
+    int target_usb_port = -1;
 
-    int bt0_active = (ds34bt_get_status(0) & DS34BT_STATE_RUNNING);
-    int usb0_active = (ds34usb_get_status(0) & DS34USB_STATE_RUNNING);
+    int u0_type = (ds34usb_get_status(0) & DS34USB_STATE_RUNNING) ? ds34usb_get_type(0) : -1;
+    int u1_type = (ds34usb_get_status(1) & DS34USB_STATE_RUNNING) ? ds34usb_get_type(1) : -1;
 
-    if (bt0_active && usb0_active) {
-        if (pad->port == 0) {
-            bt_port = 0;
-            usb_port = -1;
-        } else if (pad->port == 1) {
-            bt_port = 1;
-            usb_port = 0;
+    int b0_active = (ds34bt_get_status(0) & DS34BT_STATE_RUNNING);
+    int b1_active = (ds34bt_get_status(1) & DS34BT_STATE_RUNNING);
+
+    int gamesir_usb_port = -1;
+    if (u0_type == 4) gamesir_usb_port = 0;
+    else if (u1_type == 4) gamesir_usb_port = 1;
+
+    if (gamesir_usb_port >= 0) {
+        if (player == 0) {
+            target_usb_port = gamesir_usb_port;
+        } else if (player == 1) {
+            if (b0_active) target_bt_port = 0;
+            else if (b1_active) target_bt_port = 1;
+            else if (gamesir_usb_port == 0 && u1_type >= 0) target_usb_port = 1;
+            else if (gamesir_usb_port == 1 && u0_type >= 0) target_usb_port = 0;
+        } else if (player == 2) {
+            if (b0_active && b1_active) target_bt_port = 1;
+            else if (gamesir_usb_port == 0 && u1_type >= 0 && b0_active) target_usb_port = 1;
+            else if (gamesir_usb_port == 1 && u0_type >= 0 && b0_active) target_usb_port = 0;
+        }
+    } else {
+        if (player == 0) {
+            if (b0_active) target_bt_port = 0;
+            else if (u0_type >= 0) target_usb_port = 0;
+            else if (b1_active) target_bt_port = 1;
+            else if (u1_type >= 0) target_usb_port = 1;
+        } else if (player == 1) {
+            if (b0_active && (u0_type >= 0)) target_usb_port = 0;
+            else if (b0_active && b1_active) target_bt_port = 1;
+            else if (u0_type >= 0 && u1_type >= 0) target_usb_port = 1;
         }
     }
 
-    if (bt_port >= 0 && (ds34bt_get_status(bt_port) & DS34BT_STATE_RUNNING)) {
-        ret = ds34bt_get_data(bt_port, (u8 *)&pad->buttons.btns);
-        ds34bt_set_rumble(bt_port, 0, 0);
+    if (target_bt_port >= 0 && (ds34bt_get_status(target_bt_port) & DS34BT_STATE_RUNNING)) {
+        ret = ds34bt_get_data(target_bt_port, (u8 *)&pad->buttons.btns);
+        ds34bt_set_rumble(target_bt_port, 0, 0);
         if (ret != 0) {
             newpdata |= 0xffff ^ pad->buttons.btns;
             padsRead++;
         }
     }
 
-    if (usb_port >= 0 && (ds34usb_get_status(usb_port) & DS34USB_STATE_RUNNING)) {
-        ret = ds34usb_get_data(usb_port, (u8 *)&pad->buttons.btns);
-        ds34usb_set_rumble(usb_port, 0, 0);
+    if (target_usb_port >= 0 && (ds34usb_get_status(target_usb_port) & DS34USB_STATE_RUNNING)) {
+        ret = ds34usb_get_data(target_usb_port, (u8 *)&pad->buttons.btns);
+        ds34usb_set_rumble(target_usb_port, 0, 0);
         if (ret != 0) {
             newpdata |= 0xffff ^ pad->buttons.btns;
             padsRead++;
