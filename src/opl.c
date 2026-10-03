@@ -2417,7 +2417,7 @@ static int coverDownloadImageToDisk(const char *url, const char *prefix, const c
             break;
         }
         if (fullGet && result == 200 && length > 0) {
-            if (length < sizeof(pngSig) || memcmp(buffer, pngSig, sizeof(pngSig)) != 0) {
+            if (length < 4 || (unsigned char)buffer[0] != 0x89 || buffer[1] != 'P' || buffer[2] != 'N' || buffer[3] != 'G') {
                 coverDebugLog("COVERSAVE invalid full png sig len=%u first=%02x%02x%02x%02x", length, length > 0 ? (unsigned char)buffer[0] : 0, length > 1 ? (unsigned char)buffer[1] : 0, length > 2 ? (unsigned char)buffer[2] : 0, length > 3 ? (unsigned char)buffer[3] : 0);
                 result = (length > 0 && buffer[0] == '<') ? -ENOENT : -EIO;
                 break;
@@ -2439,7 +2439,7 @@ static int coverDownloadImageToDisk(const char *url, const char *prefix, const c
             result = result < 0 ? result : -EIO;
             break;
         }
-        if (offset == 0 && (length < sizeof(pngSig) || memcmp(buffer, pngSig, sizeof(pngSig)) != 0)) {
+        if (offset == 0 && (length < 4 || (unsigned char)buffer[0] != 0x89 || buffer[1] != 'P' || buffer[2] != 'N' || buffer[3] != 'G')) {
             coverDebugLog("COVERSAVE invalid png sig len=%u first=%02x%02x%02x%02x", length, length > 0 ? (unsigned char)buffer[0] : 0, length > 1 ? (unsigned char)buffer[1] : 0, length > 2 ? (unsigned char)buffer[2] : 0, length > 3 ? (unsigned char)buffer[3] : 0);
             result = (length > 0 && buffer[0] == '<') ? -ENOENT : -EIO;
             break;
@@ -2712,7 +2712,6 @@ static void oplDownloadMissingGameCovers(void)
                     saveFailed++;
                     lastErrorCode = artResult;
                     coverSetDownloadErrorMessage(artResult);
-                    continue;
                 }
             }
 
