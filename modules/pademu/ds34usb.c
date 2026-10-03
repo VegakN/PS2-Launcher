@@ -565,39 +565,49 @@ static void xboxusb_translate_input(int pad, const u8 *in, struct ds2report *out
 {
     u16 buttons = 0;
     u16 lt = 0, rt = 0;
+    u8 lx = 128, ly = 128, rx = 128, ry = 128;
 
     if (in[0] == 0x00) {
-        lt = in[4];
-        rt = in[5];
+        int offset = (in[1] == 0x01 && in[3] == 0xF0) ? 2 : 0;
+        u8 b2 = in[2 + offset];
+        u8 b3 = in[3 + offset];
 
-        if (in[2] & 0x01) buttons |= DS2ButtonUp;
-        if (in[2] & 0x02) buttons |= DS2ButtonDown;
-        if (in[2] & 0x04) buttons |= DS2ButtonLeft;
-        if (in[2] & 0x08) buttons |= DS2ButtonRight;
-        if (in[2] & 0x10) buttons |= DS2ButtonStart;
-        if (in[2] & 0x20) buttons |= DS2ButtonSelect;
-        if (in[2] & 0x40) buttons |= DS2ButtonL3;
-        if (in[2] & 0x80) buttons |= DS2ButtonR3;
+        lt = in[4 + offset];
+        rt = in[5 + offset];
 
-        if (in[3] & 0x01) buttons |= DS2ButtonL1;
-        if (in[3] & 0x02) buttons |= DS2ButtonR1;
-        if (in[3] & 0x10) buttons |= DS2ButtonCross;
-        if (in[3] & 0x20) buttons |= DS2ButtonCircle;
-        if (in[3] & 0x40) buttons |= DS2ButtonSquare;
-        if (in[3] & 0x80) buttons |= DS2ButtonTriangle;
+        if (b2 & 0x01) buttons |= DS2ButtonUp;
+        if (b2 & 0x02) buttons |= DS2ButtonDown;
+        if (b2 & 0x04) buttons |= DS2ButtonLeft;
+        if (b2 & 0x08) buttons |= DS2ButtonRight;
+        if (b2 & 0x10) buttons |= DS2ButtonStart;
+        if (b2 & 0x20) buttons |= DS2ButtonSelect;
+        if (b2 & 0x40) buttons |= DS2ButtonL3;
+        if (b2 & 0x80) buttons |= DS2ButtonR3;
+
+        if (b3 & 0x01) buttons |= DS2ButtonL1;
+        if (b3 & 0x02) buttons |= DS2ButtonR1;
+        if (b3 & 0x10) buttons |= DS2ButtonCross;
+        if (b3 & 0x20) buttons |= DS2ButtonCircle;
+        if (b3 & 0x40) buttons |= DS2ButtonSquare;
+        if (b3 & 0x80) buttons |= DS2ButtonTriangle;
+
+        lx = xboxusb_axis_to_ds2(in[6 + offset], in[7 + offset]);
+        ly = 255 - xboxusb_axis_to_ds2(in[8 + offset], in[9 + offset]);
+        rx = xboxusb_axis_to_ds2(in[10 + offset], in[11 + offset]);
+        ry = 255 - xboxusb_axis_to_ds2(in[12 + offset], in[13 + offset]);
 
         if (lt > 0) buttons |= DS2ButtonL2;
         if (rt > 0) buttons |= DS2ButtonR2;
 
         out->nButtonState = ~buttons;
-        out->LeftStickX = xboxusb_axis_to_ds2(in[6], in[7]);
-        out->LeftStickY = 255 - xboxusb_axis_to_ds2(in[8], in[9]);
-        out->RightStickX = xboxusb_axis_to_ds2(in[10], in[11]);
-        out->RightStickY = 255 - xboxusb_axis_to_ds2(in[12], in[13]);
+        out->LeftStickX = lx;
+        out->LeftStickY = ly;
+        out->RightStickX = rx;
+        out->RightStickY = ry;
 
         out->PressureL2 = lt;
         out->PressureR2 = rt;
-    } else {
+    } else if (in[0] == 0x20) {
         lt = in[6] | (in[7] << 8);
         rt = in[8] | (in[9] << 8);
 
@@ -628,6 +638,104 @@ static void xboxusb_translate_input(int pad, const u8 *in, struct ds2report *out
 
         out->PressureL2 = lt > 0x3FF ? 0xFF : (lt >> 2);
         out->PressureR2 = rt > 0x3FF ? 0xFF : (rt >> 2);
+    } else if (in[0] == 0x01) {
+        if (in[1] == 0x03) return;
+
+        lx = in[1];
+        ly = in[2];
+        rx = in[3];
+        ry = in[4];
+
+        u8 hat = in[5] & 0x0F;
+        u8 b1_high = in[5] >> 4;
+        u8 b1 = in[6];
+        u8 b2 = in[7];
+        u8 b3 = in[8];
+
+        if (hat <= 7) {
+            switch (hat) {
+                case 0: buttons |= DS2ButtonUp; break;
+                case 1: buttons |= DS2ButtonUp | DS2ButtonRight; break;
+                case 2: buttons |= DS2ButtonRight; break;
+                case 3: buttons |= DS2ButtonDown | DS2ButtonRight; break;
+                case 4: buttons |= DS2ButtonDown; break;
+                case 5: buttons |= DS2ButtonDown | DS2ButtonLeft; break;
+                case 6: buttons |= DS2ButtonLeft; break;
+                case 7: buttons |= DS2ButtonUp | DS2ButtonLeft; break;
+            }
+        }
+
+        if ((b1 & 0x01) || (b1_high & 0x01)) buttons |= DS2ButtonCross;
+        if ((b1 & 0x02) || (b1_high & 0x02)) buttons |= DS2ButtonCircle;
+        if ((b1 & 0x04) || (b1_high & 0x04)) buttons |= DS2ButtonSquare;
+        if ((b1 & 0x08) || (b1_high & 0x08)) buttons |= DS2ButtonTriangle;
+
+        if ((b1 & 0x10) || (b2 & 0x01)) buttons |= DS2ButtonL1;
+        if ((b1 & 0x20) || (b2 & 0x02)) buttons |= DS2ButtonR1;
+        if ((b1 & 0x40) || (b2 & 0x04)) { buttons |= DS2ButtonL2; lt = 255; }
+        if ((b1 & 0x80) || (b2 & 0x08)) { buttons |= DS2ButtonR2; rt = 255; }
+
+        if ((b2 & 0x10) || (b2 & 0x01) || (b3 & 0x01)) buttons |= DS2ButtonSelect;
+        if ((b2 & 0x20) || (b2 & 0x02) || (b3 & 0x02)) buttons |= DS2ButtonStart;
+        if ((b2 & 0x40) || (b2 & 0x04)) buttons |= DS2ButtonL3;
+        if ((b2 & 0x80) || (b2 & 0x08)) buttons |= DS2ButtonR3;
+
+        out->nButtonState = ~buttons;
+        out->LeftStickX = lx;
+        out->LeftStickY = ly;
+        out->RightStickX = rx;
+        out->RightStickY = ry;
+        out->PressureL2 = lt;
+        out->PressureR2 = rt;
+    } else { // Raw DInput HID without Report ID
+        lx = in[0];
+        ly = in[1];
+        rx = in[2];
+        ry = in[3];
+
+        u8 hat = in[4] & 0x0F;
+        if (in[4] == 0x00 && (in[6] & 0x0F) <= 15) {
+            hat = in[6] & 0x0F;
+        }
+
+        u8 b1 = in[5];
+        u8 b2 = in[6];
+        u8 b3 = in[7];
+
+        if (hat <= 7) {
+            switch (hat) {
+                case 0: buttons |= DS2ButtonUp; break;
+                case 1: buttons |= DS2ButtonUp | DS2ButtonRight; break;
+                case 2: buttons |= DS2ButtonRight; break;
+                case 3: buttons |= DS2ButtonDown | DS2ButtonRight; break;
+                case 4: buttons |= DS2ButtonDown; break;
+                case 5: buttons |= DS2ButtonDown | DS2ButtonLeft; break;
+                case 6: buttons |= DS2ButtonLeft; break;
+                case 7: buttons |= DS2ButtonUp | DS2ButtonLeft; break;
+            }
+        }
+
+        if (b1 & 0x01) buttons |= DS2ButtonCross;
+        if (b1 & 0x02) buttons |= DS2ButtonCircle;
+        if (b1 & 0x04) buttons |= DS2ButtonSquare;
+        if (b1 & 0x08) buttons |= DS2ButtonTriangle;
+        if (b1 & 0x10) buttons |= DS2ButtonL1;
+        if (b1 & 0x20) buttons |= DS2ButtonR1;
+        if (b1 & 0x40) { buttons |= DS2ButtonL2; lt = 255; }
+        if (b1 & 0x80) { buttons |= DS2ButtonR2; rt = 255; }
+
+        if (b2 & 0x01 || b3 & 0x01) buttons |= DS2ButtonSelect;
+        if (b2 & 0x02 || b3 & 0x02) buttons |= DS2ButtonStart;
+        if (b2 & 0x04 || b3 & 0x04) buttons |= DS2ButtonL3;
+        if (b2 & 0x08 || b3 & 0x08) buttons |= DS2ButtonR3;
+
+        out->nButtonState = ~buttons;
+        out->LeftStickX = lx;
+        out->LeftStickY = ly;
+        out->RightStickX = rx;
+        out->RightStickY = ry;
+        out->PressureL2 = lt;
+        out->PressureR2 = rt;
     }
 
     out->PressureUp = (buttons & DS2ButtonUp) ? 0xFF : 0x00;
@@ -684,22 +792,12 @@ static int xboxusb_send_init(int pad)
     if (ds34pad[pad].status & DS34USB_STATE_INIT_SENT)
         return 1;
 
-    u16 pid = ds34pad[pad].pid;
-    if (pid == 0x028E || pid == 0x0719 || pid == 0x028F || pid == 0x02A1 || pid == 0x0291 || is_xbox_vendor(ds34pad[pad].vid, ds34pad[pad].pid)) {
+    if (is_xbox_vendor(ds34pad[pad].vid, ds34pad[pad].pid)) {
         mips_memset(usb_ctrl_buf, 0, 20);
         UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf, NULL, NULL);
 
         xboxusb_send_packet_raw(pad, xbox360_led_p1, sizeof(xbox360_led_p1));
         xboxusb_send_packet_raw(pad, xbox360_init_cmd, sizeof(xbox360_init_cmd));
-    } else {
-        if (!xboxusb_send_packet(pad, xboxone_power_on, sizeof(xboxone_power_on)))
-            return 0;
-        if (ds34pad[pad].pid == 0x02EA)
-            xboxusb_send_packet(pad, xboxone_s_init, sizeof(xboxone_s_init));
-        if (!xboxusb_send_packet(pad, xboxone_led_on, sizeof(xboxone_led_on)))
-            return 0;
-        if (!xboxusb_send_packet(pad, xboxone_auth_done, sizeof(xboxone_auth_done)))
-            return 0;
     }
 
     ds34pad[pad].status |= DS34USB_STATE_INIT_SENT;
@@ -808,10 +906,7 @@ int ds34usb_get_data(u8 *dst, int size, int port)
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_buf, MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
-        if (ds34pad[port].type == XBOX_USB)
-            TransferWaitTimeout(ds34pad[port].sema, 2000);
-        else
-            TransferWait(ds34pad[port].sema);
+        TransferWait(ds34pad[port].sema);
         if (!usb_resulCode)
             readReport(usb_buf, port);
 
