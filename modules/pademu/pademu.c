@@ -22,7 +22,7 @@
 #include "ds34bt.h"
 #endif
 
-#if defined(USB) && defined(BT)
+#if defined(USB) || defined(BT)
 
 typedef struct {
     int driver_type; // 1 = USB, 2 = BT

@@ -54,7 +54,7 @@ static const u8 xboxone_led_on[] = {0x0A, 0x20, 0x00, 0x03, 0x00, 0x01, 0x14};
 static const u8 xboxone_auth_done[] = {0x06, 0x20, 0x00, 0x02, 0x01, 0x00};
 static const u8 xbox360_led_p1[] = {0x01, 0x03, 0x02};
 static const u8 xbox360_init_cmd[] = {0x01, 0x03, 0x10};
-static u8 usb_ctrl_buf[32] __attribute((aligned(4))) = {0};
+static u8 usb_ctrl_buf[MAX_PADS][32] __attribute((aligned(4))) = {{0}};
 
 static u8 rgbled_patterns[][2][3] =
     {
@@ -64,8 +64,10 @@ static u8 rgbled_patterns[][2][3] =
         {{0x00, 0x10, 0x10}, {0x00, 0x7F, 0x7F}}, // light cyan/cyan
 };
 
-static u8 usb_buf[MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {0};
-static u8 xbox_poll_buf[MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {0};
+static u8 usb_in_buf[MAX_PADS][MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {{0}};
+static u8 usb_out_buf[MAX_PADS][MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {{0}};
+static u8 xbox_poll_buf[MAX_PADS][MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {{0}};
+static int usb_resulCode[MAX_PADS] = {1, 1, 1, 1};
 static int xbox_poll_sema = -1;
 static int xbox_poll_result = 1;
 static int xbox_poll_tid = -1;
@@ -292,15 +294,13 @@ static void usb_release(int pad)
     SignalSema(ds34pad[pad].sema);
 }
 
-static int usb_resulCode;
-
 static void usb_data_cb(int resultCode, int bytes, void *arg)
 {
     int pad = (int)arg;
 
     // DPRINTF("DS34USB: usb_data_cb: res %d, bytes %d, arg %p \n", resultCode, bytes, arg);
 
-    usb_resulCode = resultCode;
+    usb_resulCode[pad] = resultCode;
 
     SignalSema(ds34pad[pad].sema);
 }
@@ -351,12 +351,12 @@ static void usb_config_set(int result, int count, void *arg)
 
 static void DS3USB_init(int pad)
 {
-    usb_buf[0] = 0x42;
-    usb_buf[1] = 0x0c;
-    usb_buf[2] = 0x00;
-    usb_buf[3] = 0x00;
+    usb_out_buf[pad][0] = 0x42;
+    usb_out_buf[pad][1] = 0x0c;
+    usb_out_buf[pad][2] = 0x00;
+    usb_out_buf[pad][3] = 0x00;
 
-    UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_GET_REPORT_FEATURE << 8) | 0xF4, 0, 4, usb_buf, NULL, NULL);
+    UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_GET_REPORT_FEATURE << 8) | 0xF4, 0, 4, usb_out_buf[pad], NULL, NULL);
 }
 
 #define MAX_DELAY 10
@@ -478,10 +478,10 @@ static void xboxusb_poll_cb(int resultCode, int bytes, void *arg)
 
     xbox_poll_result = resultCode;
     WaitSema(ds34pad[pad].sema);
-    if (xbox_poll_result == USB_RC_OK && xboxusb_is_input_packet(xbox_poll_buf)) {
+    if (xbox_poll_result == USB_RC_OK && xboxusb_is_input_packet(xbox_poll_buf[pad])) {
         if (!xbox_axis_center_valid[pad])
-            xboxusb_update_axis_center(pad, xbox_poll_buf);
-        xboxusb_translate_input(pad, xbox_poll_buf, &ds34pad[pad].ds2);
+            xboxusb_update_axis_center(pad, xbox_poll_buf[pad]);
+        xboxusb_translate_input(pad, xbox_poll_buf[pad], &ds34pad[pad].ds2);
         padMacroPerform(&ds34pad[pad].ds2, 0);
     }
     SignalSema(ds34pad[pad].sema);
@@ -517,7 +517,7 @@ static void xboxusb_poll_thread(void *arg)
                     continue;
 
                 xbox_poll_pending = 1;
-                ret = UsbInterruptTransfer(ds34pad[pad].interruptEndp, xbox_poll_buf, MAX_BUFFER_SIZE, xboxusb_poll_cb, (void *)pad);
+                ret = UsbInterruptTransfer(ds34pad[pad].interruptEndp, xbox_poll_buf[pad], MAX_BUFFER_SIZE, xboxusb_poll_cb, (void *)pad);
                 if (ret != USB_RC_OK)
                     xbox_poll_pending = 0;
                 break;
@@ -758,11 +758,11 @@ static int xboxusb_send_packet(int pad, const u8 *data, int len)
         return 0;
 
     PollSema(ds34pad[pad].cmd_sema);
-    mips_memset(usb_buf, 0, sizeof(usb_buf));
-    mips_memcpy(usb_buf, data, len);
-    usb_buf[2] = ds34pad[pad].xbox_seq++;
+    mips_memset(usb_out_buf[pad], 0, sizeof(usb_out_buf[pad]));
+    mips_memcpy(usb_out_buf[pad], data, len);
+    usb_out_buf[pad][2] = ds34pad[pad].xbox_seq++;
 
-    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, len, usb_cmd_cb, (void *)pad);
+    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_out_buf[pad], len, usb_cmd_cb, (void *)pad);
     if (ret == USB_RC_OK)
         TransferWait(ds34pad[pad].cmd_sema);
 
@@ -777,10 +777,10 @@ static int xboxusb_send_packet_raw(int pad, const u8 *data, int len)
         return 0;
 
     PollSema(ds34pad[pad].cmd_sema);
-    mips_memset(usb_buf, 0, sizeof(usb_buf));
-    mips_memcpy(usb_buf, data, len);
+    mips_memset(usb_out_buf[pad], 0, sizeof(usb_out_buf[pad]));
+    mips_memcpy(usb_out_buf[pad], data, len);
 
-    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, len, usb_cmd_cb, (void *)pad);
+    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_out_buf[pad], len, usb_cmd_cb, (void *)pad);
     if (ret == USB_RC_OK)
         TransferWait(ds34pad[pad].cmd_sema);
 
@@ -793,8 +793,8 @@ static int xboxusb_send_init(int pad)
         return 1;
 
     if (is_xbox_vendor(ds34pad[pad].vid, ds34pad[pad].pid)) {
-        mips_memset(usb_ctrl_buf, 0, 20);
-        UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf, NULL, NULL);
+        mips_memset(usb_ctrl_buf[pad], 0, sizeof(usb_ctrl_buf[pad]));
+        UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf[pad], NULL, NULL);
 
         xboxusb_send_packet_raw(pad, xbox360_led_p1, sizeof(xbox360_led_p1));
         xboxusb_send_packet_raw(pad, xbox360_init_cmd, sizeof(xbox360_init_cmd));
@@ -810,45 +810,45 @@ static int LEDRumble(u8 *led, u8 lrum, u8 rrum, int pad)
 
     PollSema(ds34pad[pad].cmd_sema);
 
-    mips_memset(usb_buf, 0, sizeof(usb_buf));
+    mips_memset(usb_out_buf[pad], 0, sizeof(usb_out_buf[pad]));
 
     if (ds34pad[pad].type == DS3) {
-        mips_memcpy(usb_buf, output_01_report, sizeof(output_01_report));
+        mips_memcpy(usb_out_buf[pad], output_01_report, sizeof(output_01_report));
 
-        usb_buf[1] = 0xFE; // rt
-        usb_buf[2] = rrum; // rp
-        usb_buf[3] = 0xFE; // lt
-        usb_buf[4] = lrum; // lp
+        usb_out_buf[pad][1] = 0xFE; // rt
+        usb_out_buf[pad][2] = rrum; // rp
+        usb_out_buf[pad][3] = 0xFE; // lt
+        usb_out_buf[pad][4] = lrum; // lp
 
-        usb_buf[9] = led[0] & 0x7F; // LED Conf
+        usb_out_buf[pad][9] = led[0] & 0x7F; // LED Conf
 
         if (led[3]) // means charging, so blink
         {
-            usb_buf[13] = 0x32;
-            usb_buf[18] = 0x32;
-            usb_buf[23] = 0x32;
-            usb_buf[28] = 0x32;
+            usb_out_buf[pad][13] = 0x32;
+            usb_out_buf[pad][18] = 0x32;
+            usb_out_buf[pad][23] = 0x32;
+            usb_out_buf[pad][28] = 0x32;
         }
 
-        ret = UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_SET_REPORT_OUTPUT << 8) | 0x01, 0, sizeof(output_01_report), usb_buf, usb_cmd_cb, (void *)pad);
+        ret = UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_SET_REPORT_OUTPUT << 8) | 0x01, 0, sizeof(output_01_report), usb_out_buf[pad], usb_cmd_cb, (void *)pad);
     } else if (ds34pad[pad].type == DS4) {
-        usb_buf[0] = 0x05;
-        usb_buf[1] = 0xFF;
+        usb_out_buf[pad][0] = 0x05;
+        usb_out_buf[pad][1] = 0xFF;
 
-        usb_buf[4] = rrum * 255; // ds4 has full control
-        usb_buf[5] = lrum;
+        usb_out_buf[pad][4] = rrum * 255; // ds4 has full control
+        usb_out_buf[pad][5] = lrum;
 
-        usb_buf[6] = led[0]; // r
-        usb_buf[7] = led[1]; // g
-        usb_buf[8] = led[2]; // b
+        usb_out_buf[pad][6] = led[0]; // r
+        usb_out_buf[pad][7] = led[1]; // g
+        usb_out_buf[pad][8] = led[2]; // b
 
         if (led[3]) // means charging, so blink
         {
-            usb_buf[9] = 0x80;  // Time to flash bright (255 = 2.5 seconds)
-            usb_buf[10] = 0x80; // Time to flash dark (255 = 2.5 seconds)
+            usb_out_buf[pad][9] = 0x80;  // Time to flash bright (255 = 2.5 seconds)
+            usb_out_buf[pad][10] = 0x80; // Time to flash dark (255 = 2.5 seconds)
         }
 
-        ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, 32, usb_cmd_cb, (void *)pad);
+        ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_out_buf[pad], 32, usb_cmd_cb, (void *)pad);
     }
 
     ds34pad[pad].oldled[0] = led[0];
@@ -903,7 +903,7 @@ int ds34usb_get_data(u8 *dst, int size, int port)
 
     PollSema(ds34pad[port].sema);
 
-    ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_buf, MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
+    ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_in_buf[port], MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
         if (ds34pad[port].type == XBOX_USB)
@@ -911,10 +911,10 @@ int ds34usb_get_data(u8 *dst, int size, int port)
         else
             TransferWait(ds34pad[port].sema);
 
-        if (!usb_resulCode)
-            readReport(usb_buf, port);
+        if (!usb_resulCode[port])
+            readReport(usb_in_buf[port], port);
 
-        usb_resulCode = 1;
+        usb_resulCode[port] = 1;
     } else {
         DPRINTF("DS34USB: ds34usb_get_data usb transfer error %d\n", ret);
     }
