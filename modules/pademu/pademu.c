@@ -9,9 +9,97 @@
 #include "pademu.h"
 #include "padmacro.h"
 
+#ifdef USB
+#include "ds34usb.h"
+#endif
 #ifdef BT
-
 #include "ds34bt.h"
+#endif
+
+#if defined(USB) && defined(BT)
+
+static int pademu_init(u8 pads, u8 options)
+{
+    int r1 = 1, r2 = 1;
+#ifdef USB
+    r1 = ds34usb_init(pads, options);
+#endif
+#ifdef BT
+    r2 = ds34bt_init(pads, options);
+#endif
+    return r1 || r2;
+}
+
+static int pademu_get_status(int port)
+{
+    int s = 0;
+#ifdef USB
+    s = ds34usb_get_status(port);
+    if (s & PAD_STATE_RUNNING)
+        return s;
+#endif
+#ifdef BT
+    s = ds34bt_get_status(port);
+    if (s & PAD_STATE_RUNNING)
+        return s;
+#endif
+    return s;
+}
+
+static void pademu_reset(void)
+{
+#ifdef USB
+    ds34usb_reset();
+#endif
+#ifdef BT
+    ds34bt_reset();
+#endif
+}
+
+static int pademu_get_data(u8 *dst, int size, int port)
+{
+#ifdef USB
+    if (ds34usb_get_status(port) & PAD_STATE_RUNNING)
+        return ds34usb_get_data(dst, size, port);
+#endif
+#ifdef BT
+    if (ds34bt_get_status(port) & PAD_STATE_RUNNING)
+        return ds34bt_get_data(dst, size, port);
+#endif
+    return 0;
+}
+
+static void pademu_set_rumble(u8 lrum, u8 rrum, int port)
+{
+#ifdef USB
+    if (ds34usb_get_status(port) & PAD_STATE_RUNNING)
+        ds34usb_set_rumble(lrum, rrum, port);
+#endif
+#ifdef BT
+    if (ds34bt_get_status(port) & PAD_STATE_RUNNING)
+        ds34bt_set_rumble(lrum, rrum, port);
+#endif
+}
+
+static void pademu_set_mode(int mode, int lock, int port)
+{
+#ifdef USB
+    ds34usb_set_mode(mode, lock, port);
+#endif
+#ifdef BT
+    ds34bt_set_mode(mode, lock, port);
+#endif
+}
+
+#define PAD_INIT            pademu_init
+#define PAD_GET_STATUS      pademu_get_status
+#define PAD_RESET           pademu_reset
+#define PAD_GET_DATA        pademu_get_data
+#define PAD_SET_RUMBLE      pademu_set_rumble
+#define PAD_SET_MODE        pademu_set_mode
+#define PAD_GET_MODEL(port) 3
+
+#elif defined(BT)
 
 #define PAD_INIT            ds34bt_init
 #define PAD_GET_STATUS      ds34bt_get_status
@@ -22,8 +110,6 @@
 #define PAD_GET_MODEL(port) 3
 
 #elif defined(USB)
-
-#include "ds34usb.h"
 
 #define PAD_INIT       ds34usb_init
 #define PAD_GET_STATUS ds34usb_get_status

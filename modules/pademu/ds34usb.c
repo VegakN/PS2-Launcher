@@ -469,7 +469,7 @@ static void readReport(u8 *data, int pad_idx)
 
 static int xboxusb_is_input_packet(const u8 *data)
 {
-    return data[0] == XBOXUSB_INPUT_PACKET || data[0] == 0x00;
+    return 1;
 }
 
 static void xboxusb_poll_cb(int resultCode, int bytes, void *arg)
@@ -531,7 +531,7 @@ static void xboxusb_poll_thread(void *arg)
 static void xboxusb_update_axis_center(int pad, const u8 *data)
 {
     const u8 *in = data;
-    if (in[0] == 0x00) return;
+    if (in[0] != XBOXUSB_INPUT_PACKET) return;
 
     xbox_axis_center[pad][0] = (short)((in[11] << 8) | in[10]);
     xbox_axis_center[pad][1] = (short)((in[13] << 8) | in[12]);
@@ -906,7 +906,11 @@ int ds34usb_get_data(u8 *dst, int size, int port)
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_buf, MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
-        TransferWait(ds34pad[port].sema);
+        if (ds34pad[port].type == XBOX_USB)
+            TransferWaitTimeout(ds34pad[port].sema, 5000);
+        else
+            TransferWait(ds34pad[port].sema);
+
         if (!usb_resulCode)
             readReport(usb_buf, port);
 
