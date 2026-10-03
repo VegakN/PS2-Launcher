@@ -7,6 +7,9 @@
 
 #define DS3 0
 #define DS4 1
+#define GUITAR_GH 2
+#define GUITAR_RB 3
+#define XBOX_USB 4
 
 #define MAX_BUFFER_SIZE 64 // Size of general purpose data buffer
 
@@ -18,18 +21,23 @@ typedef struct _usb_ds34
     int controlEndp;
     int interruptEndp;
     int outEndp;
+    u16 vid;
+    u16 pid;
     u8 status;
     u8 enabled;
+    u8 type;
+    u8 xbox_seq;
+    u8 oldled[4]; // rgb for ds4 and blink
     u8 lrum;
     u8 rrum;
     u8 update_rum;
-    u8 oldled[4]; // rgb for ds4 and blink
     union
     {
         struct ds2report ds2;
         u8 data[18];
     };
-    u8 type;
+    u8 analog_btn;
+    u8 btn_delay;
 } ds34usb_device;
 
 enum eDS34USBStatus {
@@ -38,6 +46,7 @@ enum eDS34USBStatus {
     DS34USB_STATE_CONFIGURED = 0x02,
     DS34USB_STATE_CONNECTED = 0x04,
     DS34USB_STATE_RUNNING = 0x08,
+    DS34USB_STATE_INIT_SENT = 0x10,
 };
 
 enum eHID {

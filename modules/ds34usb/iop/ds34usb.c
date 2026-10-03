@@ -14,10 +14,67 @@ IRX_ID("ds34usb", 1, 1);
 //#define DPRINTF(x...) printf(x)
 #define DPRINTF(x...)
 
-#define REQ_USB_OUT (USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
-#define REQ_USB_IN  (USB_DIR_IN | USB_TYPE_CLASS | USB_RECIP_INTERFACE)
+#define XBOX_VENDOR_MICROSOFT 0x045E
+#define XBOXUSB_INPUT_PACKET  0x20
 
-#define MAX_PADS 2
+static const u8 xboxone_power_on[] = {0x05, 0x20, 0x00, 0x01, 0x00};
+static const u8 xboxone_s_init[] = {0x05, 0x20, 0x00, 0x0F, 0x06};
+static const u8 xboxone_led_on[] = {0x0A, 0x20, 0x00, 0x03, 0x00, 0x01, 0x14};
+static const u8 xboxone_auth_done[] = {0x06, 0x20, 0x00, 0x02, 0x01, 0x00};
+static const u8 xbox360_led_p1[] = {0x01, 0x03, 0x02};
+static const u8 xbox360_init_cmd[] = {0x01, 0x03, 0x10};
+static u8 usb_ctrl_buf[32] __attribute((aligned(4))) = {0};
+
+static int is_xbox_vendor(u16 vid, u16 pid)
+{
+    if (vid == XBOX_VENDOR_MICROSOFT) return 1;
+    if (vid == 0x0E6F || vid == 0x0738 || vid == 0x1532 || vid == 0x24C6 || vid == 0x11C0 || vid == 0x256F || vid == 0x146B || vid == 0x0F0D || vid == 0x20D6 || vid == 0x057E) return 1;
+    if (pid == 0x028E || pid == 0x028F || pid == 0x02A1 || pid == 0x0719 || pid == 0x0291 || pid == 0x02EA || pid == 0x0B12 || pid == 0x0B13) return 1;
+    return 0;
+}
+
+static int is_gamepad_device(int devId, UsbDeviceDescriptor *device)
+{
+    UsbConfigDescriptor *config;
+
+    if (device == NULL)
+        return 0;
+
+    if (device->idVendor == SONY_VID && (device->idProduct == GUITAR_HERO_PS3_PID || device->idProduct == ROCK_BAND_PS3_PID))
+        return 1;
+
+    if (device->idVendor == DS34_VID && (device->idProduct == DS3_PID || device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM))
+        return 1;
+
+    if (is_xbox_vendor(device->idVendor, device->idProduct))
+        return 1;
+
+    config = (UsbConfigDescriptor *)UsbGetDeviceStaticDescriptor(devId, device, USB_DT_CONFIG);
+    if (config == NULL)
+        return 0;
+
+    u8 *desc = (u8 *)config + config->bLength;
+    int len = config->wTotalLength - config->bLength;
+    int has_gamepad_intf = 0;
+
+    while (len > 0) {
+        u8 bLength = desc[0];
+        u8 bDescriptorType = desc[1];
+
+        if (bLength == 0) break;
+
+        if (bDescriptorType == USB_DT_INTERFACE) {
+            UsbInterfaceDescriptor *intf = (UsbInterfaceDescriptor *)desc;
+            if (intf->bInterfaceClass == 0x03 || intf->bInterfaceClass == 0xFF)
+                has_gamepad_intf = 1;
+        }
+
+        desc += bLength;
+        len -= bLength;
+    }
+
+    return has_gamepad_intf;
+}
 
 static u8 output_01_report[] =
     {
@@ -84,24 +141,14 @@ int usb_probe(int devId)
     DPRINTF("DS34USB: probe: devId=%i\n", devId);
 
     device = (UsbDeviceDescriptor *)UsbGetDeviceStaticDescriptor(devId, NULL, USB_DT_DEVICE);
-    if (device == NULL) {
-        DPRINTF("DS34USB: Error - Couldn't get device descriptor\n");
-        return 0;
-    }
-
-    if (device->idVendor == DS34_VID && (device->idProduct == DS3_PID || device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM))
-        return 1;
-
-    return 0;
+    return is_gamepad_device(devId, device);
 }
 
 int usb_connect(int devId)
 {
-    int pad, epCount;
+    int pad;
     UsbDeviceDescriptor *device;
     UsbConfigDescriptor *config;
-    UsbInterfaceDescriptor *interface;
-    UsbEndpointDescriptor *endpoint;
 
     DPRINTF("DS34USB: connect: devId=%i\n", devId);
 
@@ -117,43 +164,60 @@ int usb_connect(int devId)
 
     PollSema(ds34pad[pad].sema);
 
-    ds34pad[pad].devId = devId;
-
-    ds34pad[pad].status = DS34USB_STATE_AUTHORIZED;
-
-    ds34pad[pad].controlEndp = UsbOpenEndpoint(devId, NULL);
-
     device = (UsbDeviceDescriptor *)UsbGetDeviceStaticDescriptor(devId, NULL, USB_DT_DEVICE);
     config = (UsbConfigDescriptor *)UsbGetDeviceStaticDescriptor(devId, device, USB_DT_CONFIG);
-    interface = (UsbInterfaceDescriptor *)((char *)config + config->bLength);
+    if (device == NULL || config == NULL) {
+        SignalSema(ds34pad[pad].sema);
+        return 1;
+    }
+
+    ds34pad[pad].devId = devId;
+    ds34pad[pad].vid = device->idVendor;
+    ds34pad[pad].pid = device->idProduct;
+
+    ds34pad[pad].status = DS34USB_STATE_AUTHORIZED;
+    ds34pad[pad].controlEndp = UsbOpenEndpoint(devId, NULL);
+    ds34pad[pad].interruptEndp = -1;
+    ds34pad[pad].outEndp = -1;
 
     if (device->idProduct == DS3_PID) {
         ds34pad[pad].type = DS3;
-        epCount = interface->bNumEndpoints - 1;
-    } else {
+    } else if (device->idVendor == DS34_VID && (device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM)) {
         ds34pad[pad].type = DS4;
-        epCount = 20; // ds4 v2 returns interface->bNumEndpoints as 0
+    } else {
+        ds34pad[pad].type = XBOX_USB;
+        ds34pad[pad].analog_btn = 1;
     }
 
-    endpoint = (UsbEndpointDescriptor *)UsbGetDeviceStaticDescriptor(devId, NULL, USB_DT_ENDPOINT);
+    u8 *desc = (u8 *)config + config->bLength;
+    int len = config->wTotalLength - config->bLength;
 
-    do {
-        if (endpoint->bmAttributes == USB_ENDPOINT_XFER_INT) {
-            if ((endpoint->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN && ds34pad[pad].interruptEndp < 0) {
-                ds34pad[pad].interruptEndp = UsbOpenEndpointAligned(devId, endpoint);
-                DPRINTF("DS34USB: register Event endpoint id =%i addr=%02X packetSize=%i\n", ds34pad[pad].interruptEndp, endpoint->bEndpointAddress, (unsigned short int)endpoint->wMaxPacketSizeHB << 8 | endpoint->wMaxPacketSizeLB);
-            }
-            if ((endpoint->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_OUT && ds34pad[pad].outEndp < 0) {
-                ds34pad[pad].outEndp = UsbOpenEndpointAligned(devId, endpoint);
-                DPRINTF("DS34USB: register Output endpoint id =%i addr=%02X packetSize=%i\n", ds34pad[pad].outEndp, endpoint->bEndpointAddress, (unsigned short int)endpoint->wMaxPacketSizeHB << 8 | endpoint->wMaxPacketSizeLB);
+    while (len > 0) {
+        u8 bLength = desc[0];
+        u8 bDescriptorType = desc[1];
+
+        if (bLength == 0) break;
+
+        if (bDescriptorType == USB_DT_ENDPOINT) {
+            UsbEndpointDescriptor *ep = (UsbEndpointDescriptor *)desc;
+
+            if (ep->bmAttributes == USB_ENDPOINT_XFER_INT) {
+                if ((ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN && ds34pad[pad].interruptEndp < 0) {
+                    ds34pad[pad].interruptEndp = UsbOpenEndpointAligned(devId, ep);
+                    DPRINTF("DS34USB: register Event endpoint id =%i addr=%02X packetSize=%i\n", ds34pad[pad].interruptEndp, ep->bEndpointAddress, (unsigned short int)ep->wMaxPacketSizeHB << 8 | ep->wMaxPacketSizeLB);
+                }
+                if ((ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_OUT && ds34pad[pad].outEndp < 0) {
+                    ds34pad[pad].outEndp = UsbOpenEndpointAligned(devId, ep);
+                    DPRINTF("DS34USB: register Output endpoint id =%i addr=%02X packetSize=%i\n", ds34pad[pad].outEndp, ep->bEndpointAddress, (unsigned short int)ep->wMaxPacketSizeHB << 8 | ep->wMaxPacketSizeLB);
+                }
             }
         }
 
-        endpoint = (UsbEndpointDescriptor *)((char *)endpoint + endpoint->bLength);
+        desc += bLength;
+        len -= bLength;
+    }
 
-    } while (epCount--);
-
-    if (ds34pad[pad].interruptEndp < 0 || ds34pad[pad].outEndp < 0) {
+    if (ds34pad[pad].interruptEndp < 0) {
         usb_release(pad);
         return 1;
     }
@@ -197,6 +261,9 @@ static void usb_release(int pad)
     ds34pad[pad].interruptEndp = -1;
     ds34pad[pad].outEndp = -1;
     ds34pad[pad].devId = -1;
+    ds34pad[pad].vid = 0;
+    ds34pad[pad].pid = 0;
+    ds34pad[pad].xbox_seq = 0;
     ds34pad[pad].status = DS34USB_STATE_DISCONNECTED;
 
     SignalSema(ds34pad[pad].sema);
@@ -224,12 +291,53 @@ static void usb_cmd_cb(int resultCode, int bytes, void *arg)
     SignalSema(ds34pad[pad].cmd_sema);
 }
 
+static int xboxusb_send_packet_raw(int pad, const u8 *data, int len)
+{
+    int ret;
+
+    if (ds34pad[pad].outEndp < 0 || len <= 0 || len > MAX_BUFFER_SIZE)
+        return 0;
+
+    PollSema(ds34pad[pad].cmd_sema);
+    mips_memset(usb_buf, 0, sizeof(usb_buf));
+    mips_memcpy(usb_buf, data, len);
+
+    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, len, usb_cmd_cb, (void *)pad);
+    if (ret == USB_RC_OK)
+        TransferWait(ds34pad[pad].cmd_sema);
+
+    return ret == USB_RC_OK;
+}
+
+static int xboxusb_send_init(int pad)
+{
+    if (ds34pad[pad].status & DS34USB_STATE_INIT_SENT)
+        return 1;
+
+    u16 pid = ds34pad[pad].pid;
+    if (pid == 0x028E || pid == 0x0719 || pid == 0x028F || pid == 0x02A1 || pid == 0x0291 || is_xbox_vendor(ds34pad[pad].vid, ds34pad[pad].pid)) {
+        mips_memset(usb_ctrl_buf, 0, 20);
+        UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf, NULL, NULL);
+
+        xboxusb_send_packet_raw(pad, xbox360_led_p1, sizeof(xbox360_led_p1));
+        xboxusb_send_packet_raw(pad, xbox360_init_cmd, sizeof(xbox360_init_cmd));
+    }
+
+    ds34pad[pad].status |= DS34USB_STATE_INIT_SENT;
+    return 1;
+}
+
 static void usb_config_set(int result, int count, void *arg)
 {
     int pad = (int)arg;
     u8 led[4];
 
     PollSema(ds34pad[pad].sema);
+
+    if (result != USB_RC_OK) {
+        SignalSema(ds34pad[pad].sema);
+        return;
+    }
 
     ds34pad[pad].status |= DS34USB_STATE_CONFIGURED;
 
@@ -243,10 +351,14 @@ static void usb_config_set(int result, int count, void *arg)
         led[1] = rgbled_patterns[pad][1][1];
         led[2] = rgbled_patterns[pad][1][2];
         led[3] = 0;
+    } else if (ds34pad[pad].type == XBOX_USB) {
+        xboxusb_send_init(pad);
     }
 
-    LEDRumble(led, 0, 0, pad);
-    DelayThread(20000);
+    if (ds34pad[pad].type != XBOX_USB) {
+        LEDRumble(led, 0, 0, pad);
+        DelayThread(20000);
+    }
 
     ds34pad[pad].status |= DS34USB_STATE_RUNNING;
 
@@ -263,8 +375,121 @@ static void DS3USB_init(int pad)
     UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_GET_REPORT_FEATURE << 8) | 0xF4, 0, 4, usb_buf, NULL, NULL);
 }
 
+static int xboxusb_axis_to_ds2(u8 low, u8 high)
+{
+    int value = (short)((high << 8) | low);
+    if (value > -12000 && value < 12000)
+        value = 0;
+    value = (value >> 8) + 128;
+    if (value < 0) value = 0;
+    if (value > 255) value = 255;
+    return value;
+}
+
+static void xboxusb_translate_report(u8 *in, int pad)
+{
+    u16 buttons = 0;
+    u8 lt = 0, rt = 0;
+    u8 lx = 128, ly = 128, rx = 128, ry = 128;
+
+    if (in[0] == 0x00) {
+        int offset = (in[1] == 0x01 && in[3] == 0xF0) ? 2 : 0;
+        u8 b2 = in[2 + offset];
+        u8 b3 = in[3 + offset];
+
+        lt = in[4 + offset];
+        rt = in[5 + offset];
+
+        if (b2 & 0x01) buttons |= DS2ButtonUp;
+        if (b2 & 0x02) buttons |= DS2ButtonDown;
+        if (b2 & 0x04) buttons |= DS2ButtonLeft;
+        if (b2 & 0x08) buttons |= DS2ButtonRight;
+        if (b2 & 0x10) buttons |= DS2ButtonStart;
+        if (b2 & 0x20) buttons |= DS2ButtonSelect;
+        if (b2 & 0x40) buttons |= DS2ButtonL3;
+        if (b2 & 0x80) buttons |= DS2ButtonR3;
+
+        if (b3 & 0x01) buttons |= DS2ButtonL1;
+        if (b3 & 0x02) buttons |= DS2ButtonR1;
+        if (b3 & 0x10) buttons |= DS2ButtonCross;
+        if (b3 & 0x20) buttons |= DS2ButtonCircle;
+        if (b3 & 0x40) buttons |= DS2ButtonSquare;
+        if (b3 & 0x80) buttons |= DS2ButtonTriangle;
+
+        lx = xboxusb_axis_to_ds2(in[6 + offset], in[7 + offset]);
+        ly = 255 - xboxusb_axis_to_ds2(in[8 + offset], in[9 + offset]);
+        rx = xboxusb_axis_to_ds2(in[10 + offset], in[11 + offset]);
+        ry = 255 - xboxusb_axis_to_ds2(in[12 + offset], in[13 + offset]);
+    } else if (in[0] == 0x20) {
+        lt = in[6] | (in[7] << 8);
+        rt = in[8] | (in[9] << 8);
+
+        if (in[5] & 0x01) buttons |= DS2ButtonUp;
+        if (in[5] & 0x02) buttons |= DS2ButtonDown;
+        if (in[5] & 0x04) buttons |= DS2ButtonLeft;
+        if (in[5] & 0x08) buttons |= DS2ButtonRight;
+        if (in[5] & 0x10) buttons |= DS2ButtonL1;
+        if (in[5] & 0x20) buttons |= DS2ButtonR1;
+        if (in[5] & 0x40) buttons |= DS2ButtonL3;
+        if (in[5] & 0x80) buttons |= DS2ButtonR3;
+
+        if (in[4] & 0x04) buttons |= DS2ButtonStart;
+        if (in[4] & 0x08) buttons |= DS2ButtonSelect;
+        if (in[4] & 0x10) buttons |= DS2ButtonCross;
+        if (in[4] & 0x20) buttons |= DS2ButtonCircle;
+        if (in[4] & 0x40) buttons |= DS2ButtonSquare;
+        if (in[4] & 0x80) buttons |= DS2ButtonTriangle;
+
+        lx = xboxusb_axis_to_ds2(in[10], in[11]);
+        ly = 255 - xboxusb_axis_to_ds2(in[12], in[13]);
+        rx = xboxusb_axis_to_ds2(in[14], in[15]);
+        ry = 255 - xboxusb_axis_to_ds2(in[16], in[17]);
+    }
+
+    u8 right_p = (buttons & DS2ButtonRight) ? 255 : 0;
+    u8 left_p  = (buttons & DS2ButtonLeft) ? 255 : 0;
+    u8 up_p    = (buttons & DS2ButtonUp) ? 255 : 0;
+    u8 down_p  = (buttons & DS2ButtonDown) ? 255 : 0;
+
+    u8 tri_p   = (buttons & DS2ButtonTriangle) ? 255 : 0;
+    u8 circ_p  = (buttons & DS2ButtonCircle) ? 255 : 0;
+    u8 cross_p = (buttons & DS2ButtonCross) ? 255 : 0;
+    u8 sqr_p   = (buttons & DS2ButtonSquare) ? 255 : 0;
+
+    u8 l1_p    = (buttons & DS2ButtonL1) ? 255 : 0;
+    u8 r1_p    = (buttons & DS2ButtonR1) ? 255 : 0;
+
+    ds34pad[pad].data[0] = ~((u8)(buttons & 0xFF));
+    ds34pad[pad].data[1] = ~((u8)(buttons >> 8));
+
+    ds34pad[pad].data[2] = rx;
+    ds34pad[pad].data[3] = ry;
+    ds34pad[pad].data[4] = lx;
+    ds34pad[pad].data[5] = ly;
+
+    ds34pad[pad].data[6] = right_p;
+    ds34pad[pad].data[7] = left_p;
+    ds34pad[pad].data[8] = up_p;
+    ds34pad[pad].data[9] = down_p;
+
+    ds34pad[pad].data[10] = tri_p;
+    ds34pad[pad].data[11] = circ_p;
+    ds34pad[pad].data[12] = cross_p;
+    ds34pad[pad].data[13] = sqr_p;
+
+    ds34pad[pad].data[14] = l1_p;
+    ds34pad[pad].data[15] = r1_p;
+    ds34pad[pad].data[16] = lt;
+    ds34pad[pad].data[17] = rt;
+}
+
 static void readReport(u8 *data, int pad)
 {
+    if (ds34pad[pad].type == XBOX_USB) {
+        xboxusb_translate_report(data, pad);
+        return;
+    }
+
     if (data[0]) {
 
         if (ds34pad[pad].type == DS3) {
