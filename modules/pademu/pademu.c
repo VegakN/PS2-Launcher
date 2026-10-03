@@ -184,29 +184,29 @@ extern struct irx_export_table _exp_pademu;
 
 int _start(int argc, char *argv[])
 {
-    union
-    {
-        struct
-        {
-            u8 pad_enable;
-            u8 pad_vibration;
-            u8 mtap_enabled : 1;
-            u8 mtap_port    : 1;
-            u8 pad_options  : 1;
-        };
-        int raw;
-    } PadEmuSettings_local;
-    u8 pad_vibration = 0x03;
+    u32 raw_settings = 0;
+    u8 pad_vibration = 0x0F;
 
-    pad_enable = 0x03;
+    pad_enable = 0x0F;
 
     if (argc > 1) {
-        mips_memcpy(&PadEmuSettings_local.raw, argv[1], 4);
-        pad_enable = PadEmuSettings_local.pad_enable;
-        pad_vibration = PadEmuSettings_local.pad_vibration;
-        mtap_enabled = PadEmuSettings_local.mtap_enabled;
-        mtap_port = PadEmuSettings_local.mtap_port;
-        pad_options = PadEmuSettings_local.pad_options; // enable workaround for fake ds3
+        mips_memcpy(&raw_settings, argv[1], 4);
+        u8 ports_from_settings = (raw_settings >> 8) & 0xFF;
+        if (ports_from_settings != 0)
+            pad_enable = ports_from_settings;
+        else
+            pad_enable = 0x0F;
+
+        u8 vib_from_settings = (raw_settings >> 16) & 0xFF;
+        if (vib_from_settings != 0)
+            pad_vibration = vib_from_settings;
+        else
+            pad_vibration = 0x0F;
+
+        mtap_enabled = (raw_settings >> 24) & 1;
+        mtap_port = (raw_settings >> 25) & 1;
+        pad_options = (raw_settings >> 26) & 1;
+
         u32 macro_settings = 0xAB;
         mips_memcpy(&macro_settings, argv[1] + 4, 4);
         padMacroInit(macro_settings);
