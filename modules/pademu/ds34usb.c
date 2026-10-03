@@ -130,6 +130,7 @@ static int is_gamepad_device(int devId, UsbDeviceDescriptor *device)
 
     u8 *desc = (u8 *)config + config->bLength;
     int len = config->wTotalLength - config->bLength;
+    int has_gamepad_intf = 0;
 
     while (len > 0) {
         u8 bLength = desc[0];
@@ -139,17 +140,15 @@ static int is_gamepad_device(int devId, UsbDeviceDescriptor *device)
 
         if (bDescriptorType == USB_DT_INTERFACE) {
             UsbInterfaceDescriptor *intf = (UsbInterfaceDescriptor *)desc;
-            if (intf->bInterfaceClass == 0x08)
-                return 0;
-            if (intf->bInterfaceClass == 0x03 || (intf->bInterfaceClass == 0xFF && intf->bInterfaceSubClass == 0x5D))
-                return 1;
+            if (intf->bInterfaceClass == 0x03 || intf->bInterfaceClass == 0xFF)
+                has_gamepad_intf = 1;
         }
 
         desc += bLength;
         len -= bLength;
     }
 
-    return 0;
+    return has_gamepad_intf;
 }
 
 int usb_probe(int devId)
