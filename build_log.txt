@@ -1,4 +1,4 @@
-Building Open PS2 Loader v1.2.0-Beta-22-ce46679-dirty...
+Building Open PS2 Loader v1.2.0-Beta-28-e7e11ef-dirty...
 -Interface
 make[1]: Entering directory '/__w/PS2-Launcher/PS2-Launcher'
 src/menusys.c:1979:12: warning: 'ps5SmbOperationActive' defined but not used [-Wunused-function]
@@ -671,47 +671,121 @@ mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../incl
 mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DUSB -DUSE_SMSUTILS -msoft-float -mno-explicit-relocs -c padmacro.c -o obj.usb/padmacro.o
 mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DUSB -DUSE_SMSUTILS -msoft-float -mno-explicit-relocs -c ds34common.c -o obj.usb/ds34common.o
 mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DUSB -DUSE_SMSUTILS -msoft-float -mno-explicit-relocs -c ds34usb.c -o obj.usb/ds34usb.o
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/ -DUSB -DUSE_SMSUTILS -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o usb_pademu.notiopmod.elf obj.usb/exports.o obj.usb/pademu.o obj.usb/sys_utils.o obj.usb/imports.o obj.usb/padmacro.o obj.usb/ds34common.o obj.usb/ds34usb.o -nostdlib -dc -r  
-mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o usb_pademu.notiopmod.stripped.elf usb_pademu.notiopmod.elf
-iopfixup --rb --irx1 -o usb_pademu.irx usb_pademu.notiopmod.stripped.elf
+ds34usb.c:227:5: error: expected identifier or '(' before 'if'
+  227 |     if (ds34pad[pad].interruptEndp < 0 || ds34pad[pad].outEndp < 0) {
+      |     ^~
+ds34usb.c:232:13: error: 'pad' undeclared here (not in a function)
+  232 |     ds34pad[pad].status |= DS34USB_STATE_CONNECTED;
+      |             ^~~
+ds34usb.c:232:17: error: expected '=', ',', ';', 'asm' or '__attribute__' before '.' token
+  232 |     ds34pad[pad].status |= DS34USB_STATE_CONNECTED;
+      |                 ^
+In file included from ds34usb.c:7:
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:28: error: expected declaration specifiers or '...' before '(' token
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                            ^
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from ds34usb.c:6:
+/usr/local/ps2dev/ps2sdk/iop/include/usbd.h:209:31: error: expected declaration specifiers or '...' before numeric constant
+  209 | #define USB_DIR_OUT           0
+      |                               ^
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:36: note: in expansion of macro 'USB_DIR_OUT'
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                                    ^~~~~~~~~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd.h:232:35: error: expected declaration specifiers or '...' before numeric constant
+  232 | #define USB_REQ_SET_CONFIGURATION 0x09
+      |                                   ^~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:68: note: in expansion of macro 'USB_REQ_SET_CONFIGURATION'
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                                                                    ^~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:95: error: expected declaration specifiers or '...' before '(' token
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                                                                                               ^
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:105: error: expected declaration specifiers or '...' before numeric constant
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                                                                                                         ^
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:108: error: expected declaration specifiers or '...' before numeric constant
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                                                                                                            ^
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/local/ps2dev/ps2sdk/iop/include/types.h:1,
+                 from ds34usb.c:1:
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:111: error: expected declaration specifiers or '...' before '(' token
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                                                                                                               ^~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:117: error: expected declaration specifiers or '...' before '(' token
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                                                                                                                     ^
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:57:127: error: expected declaration specifiers or '...' before '(' token
+   57 |     sceUsbdControlTransfer((epID), USB_DIR_OUT | USB_RECIP_DEVICE, USB_REQ_SET_CONFIGURATION, (config), 0, 0, NULL, (doneCB), (arg))
+      |                                                                                                                               ^
+/usr/local/ps2dev/ps2sdk/iop/include/usbd_macro.h:135:35: note: in expansion of macro 'sceUsbdSetConfiguration'
+  135 | #define UsbSetDeviceConfiguration sceUsbdSetConfiguration
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:234:5: note: in expansion of macro 'UsbSetDeviceConfiguration'
+  234 |     UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+ds34usb.c:235:16: error: expected declaration specifiers or '...' before 'ds34pad'
+  235 |     SignalSema(ds34pad[pad].sema);
+      |                ^~~~~~~
+ds34usb.c:237:5: error: expected identifier or '(' before 'return'
+  237 |     return 0;
+      |     ^~~~~~
+ds34usb.c:238:1: error: expected identifier or '(' before '}' token
+  238 | }
+      | ^
+ds34usb.c:95:13: warning: 'xboxusb_apply_buttons' declared 'static' but never defined [-Wunused-function]
+   95 | static void xboxusb_apply_buttons(const u8 *in, struct ds2report *out);
+      |             ^~~~~~~~~~~~~~~~~~~~~
+make[2]: *** [/usr/local/ps2dev/ps2sdk/samples/Makefile.iopglobal:109: obj.usb/ds34usb.o] Error 1
 rm obj.usb/build-imports.c obj.usb/build-exports.c
 make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/pademu'
-make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/ds34usb/iop'
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c ds34usb.c -o obj/ds34usb.o
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c smsutils.S -o obj/smsutils.o
-printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
-cat imports.lst >> obj/build-imports.c
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o ds34usb.notiopmod.elf obj/ds34usb.o obj/smsutils.o obj/imports.o -nostdlib -dc -r  
-mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o ds34usb.notiopmod.stripped.elf ds34usb.notiopmod.elf
-iopfixup --rb --irx1 --allow-zero-text -o ds34usb.irx ds34usb.notiopmod.stripped.elf
-rm obj/build-imports.c
-make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/ds34usb/iop'
-make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/ds34bt/iop'
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c ds34bt.c -o obj/ds34bt.o
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c smsutils.S -o obj/smsutils.o
-printf '%s\n' "#include \"irx_imports.h\"" > obj/build-imports.c
-cat imports.lst >> obj/build-imports.c
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -fno-toplevel-reorder -c obj/build-imports.c -o obj/imports.o
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -T/usr/local/ps2dev/ps2sdk/iop/startup/linkfile -Os -o ds34bt.notiopmod.elf obj/ds34bt.o obj/smsutils.o obj/imports.o -nostdlib -dc -r  
-mipsel-none-elf-strip --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o ds34bt.notiopmod.stripped.elf ds34bt.notiopmod.elf
-iopfixup --rb --irx1 --allow-zero-text -o ds34bt.irx ds34bt.notiopmod.stripped.elf
-rm obj/build-imports.c
-make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/ds34bt/iop'
-make[2]: Entering directory '/__w/PS2-Launcher/PS2-Launcher/modules/xboxusb/iop'
-mipsel-none-elf-gcc -D_IOP -fno-builtin -G0 -Os -Wall -gdwarf-2 -gz -I../../../include/ -I/usr/local/ps2dev/ps2sdk/iop/include -I/usr/local/ps2dev/ps2sdk/common/include -I. -Iinclude/  -msoft-float -mno-explicit-relocs -c xboxusb.c -o obj/xboxusb.o
-xboxusb.c: In function 'usb_connect':
-xboxusb.c:157:15: error: 'UsbEndpointDescriptor' has no member named 'bDescriptorType'
-  157 |         if (ep->bDescriptorType == USB_DT_ENDPOINT) {
-      |               ^~
-xboxusb.c:167:22: error: 'UsbEndpointDescriptor' has no member named 'bDescriptorType'
-  167 |         } else if (ep->bDescriptorType == USB_DT_INTERFACE) {
-      |                      ^~
-xboxusb.c:113:28: warning: unused variable 'endpoint' [-Wunused-variable]
-  113 |     UsbEndpointDescriptor *endpoint;
-      |                            ^~~~~~~~
-make[2]: *** [/usr/local/ps2dev/ps2sdk/samples/Makefile.iopglobal:109: obj/xboxusb.o] Error 1
-make[2]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher/modules/xboxusb/iop'
-make[1]: *** [Makefile:527: modules/xboxusb/iop/xboxusb.irx] Error 2
+make[1]: *** [Makefile:539: modules/pademu/usb_pademu.irx] Error 2
 make[1]: Leaving directory '/__w/PS2-Launcher/PS2-Launcher'
 make: *** [Makefile:230: all] Error 2
