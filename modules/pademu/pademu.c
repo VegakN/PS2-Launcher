@@ -20,6 +20,100 @@
 
 #if defined(USB) && defined(BT)
 
+typedef struct {
+    int driver_type; // 1 = USB, 2 = BT
+    int driver_port; // 0..3
+} pad_mapping_t;
+
+static pad_mapping_t get_pad_mapping(int game_port)
+{
+    pad_mapping_t map;
+    map.driver_type = 0;
+    map.driver_port = -1;
+
+    int usb_running[MAX_PORTS];
+    int bt_running[MAX_PORTS];
+    int i;
+    int gamesir_usb_port = -1;
+
+#ifdef USB
+    for (i = 0; i < MAX_PORTS; i++) {
+        int status = ds34usb_get_status(i);
+        usb_running[i] = (status & PAD_STATE_RUNNING) ? 1 : 0;
+        int type = status >> 8;
+        if (usb_running[i] && type == 4) { // XBOX_USB / GameSir
+            gamesir_usb_port = i;
+        }
+    }
+#else
+    for (i = 0; i < MAX_PORTS; i++) usb_running[i] = 0;
+#endif
+
+#ifdef BT
+    for (i = 0; i < MAX_PORTS; i++) {
+        bt_running[i] = (ds34bt_get_status(i) & PAD_STATE_RUNNING) ? 1 : 0;
+    }
+#else
+    for (i = 0; i < MAX_PORTS; i++) bt_running[i] = 0;
+#endif
+
+    if (gamesir_usb_port >= 0) {
+        if (game_port == 0) {
+            map.driver_type = 1; // USB
+            map.driver_port = gamesir_usb_port;
+            return map;
+        }
+
+        int assigned = 1;
+
+        for (i = 0; i < MAX_PORTS; i++) {
+            if (bt_running[i]) {
+                if (assigned == game_port) {
+                    map.driver_type = 2; // BT
+                    map.driver_port = i;
+                    return map;
+                }
+                assigned++;
+            }
+        }
+
+        for (i = 0; i < MAX_PORTS; i++) {
+            if (i != gamesir_usb_port && usb_running[i]) {
+                if (assigned == game_port) {
+                    map.driver_type = 1; // USB
+                    map.driver_port = i;
+                    return map;
+                }
+                assigned++;
+            }
+        }
+    } else {
+        int assigned = 0;
+        for (i = 0; i < MAX_PORTS; i++) {
+            if (usb_running[i]) {
+                if (assigned == game_port) {
+                    map.driver_type = 1; // USB
+                    map.driver_port = i;
+                    return map;
+                }
+                assigned++;
+            }
+        }
+        for (i = 0; i < MAX_PORTS; i++) {
+            if (bt_running[i]) {
+                if (assigned == game_port) {
+                    map.driver_type = 2; // BT
+                    map.driver_port = i;
+                    return map;
+                }
+                assigned++;
+            }
+        }
+    }
+
+    return map;
+}
+
 static int pademu_init(u8 pads, u8 options)
 {
     int r1 = 1, r2 = 1;
@@ -34,18 +128,16 @@ static int pademu_init(u8 pads, u8 options)
 
 static int pademu_get_status(int port)
 {
-    int s = 0;
+    pad_mapping_t map = get_pad_mapping(port);
 #ifdef USB
-    s = ds34usb_get_status(port);
-    if (s & PAD_STATE_RUNNING)
-        return s;
+    if (map.driver_type == 1 && map.driver_port >= 0)
+        return ds34usb_get_status(map.driver_port);
 #endif
 #ifdef BT
-    s = ds34bt_get_status(port);
-    if (s & PAD_STATE_RUNNING)
-        return s;
+    if (map.driver_type == 2 && map.driver_port >= 0)
+        return ds34bt_get_status(map.driver_port);
 #endif
-    return s;
+    return 0;
 }
 
 static void pademu_reset(void)
@@ -60,36 +152,41 @@ static void pademu_reset(void)
 
 static int pademu_get_data(u8 *dst, int size, int port)
 {
+    pad_mapping_t map = get_pad_mapping(port);
 #ifdef USB
-    if (ds34usb_get_status(port) & PAD_STATE_RUNNING)
-        return ds34usb_get_data(dst, size, port);
+    if (map.driver_type == 1 && map.driver_port >= 0)
+        return ds34usb_get_data(dst, size, map.driver_port);
 #endif
 #ifdef BT
-    if (ds34bt_get_status(port) & PAD_STATE_RUNNING)
-        return ds34bt_get_data(dst, size, port);
+    if (map.driver_type == 2 && map.driver_port >= 0)
+        return ds34bt_get_data(dst, size, map.driver_port);
 #endif
     return 0;
 }
 
 static void pademu_set_rumble(u8 lrum, u8 rrum, int port)
 {
+    pad_mapping_t map = get_pad_mapping(port);
 #ifdef USB
-    if (ds34usb_get_status(port) & PAD_STATE_RUNNING)
-        ds34usb_set_rumble(lrum, rrum, port);
+    if (map.driver_type == 1 && map.driver_port >= 0)
+        ds34usb_set_rumble(lrum, rrum, map.driver_port);
 #endif
 #ifdef BT
-    if (ds34bt_get_status(port) & PAD_STATE_RUNNING)
-        ds34bt_set_rumble(lrum, rrum, port);
+    if (map.driver_type == 2 && map.driver_port >= 0)
+        ds34bt_set_rumble(lrum, rrum, map.driver_port);
 #endif
 }
 
 static void pademu_set_mode(int mode, int lock, int port)
 {
+    pad_mapping_t map = get_pad_mapping(port);
 #ifdef USB
-    ds34usb_set_mode(mode, lock, port);
+    if (map.driver_type == 1 && map.driver_port >= 0)
+        ds34usb_set_mode(mode, lock, map.driver_port);
 #endif
 #ifdef BT
-    ds34bt_set_mode(mode, lock, port);
+    if (map.driver_type == 2 && map.driver_port >= 0)
+        ds34bt_set_mode(mode, lock, map.driver_port);
 #endif
 }
 
@@ -191,21 +288,21 @@ int _start(int argc, char *argv[])
 
     if (argc > 1) {
         mips_memcpy(&raw_settings, argv[1], 4);
-        u8 ports_from_settings = (raw_settings >> 8) & 0xFF;
+        u8 ports_from_settings = raw_settings & 0xFF;
         if (ports_from_settings != 0)
             pad_enable = ports_from_settings;
         else
             pad_enable = 0x0F;
 
-        u8 vib_from_settings = (raw_settings >> 16) & 0xFF;
+        u8 vib_from_settings = (raw_settings >> 8) & 0xFF;
         if (vib_from_settings != 0)
             pad_vibration = vib_from_settings;
         else
             pad_vibration = 0x0F;
 
-        mtap_enabled = (raw_settings >> 24) & 1;
-        mtap_port = (raw_settings >> 25) & 1;
-        pad_options = (raw_settings >> 26) & 1;
+        mtap_enabled = (raw_settings >> 16) & 1;
+        mtap_port = (raw_settings >> 17) & 1;
+        pad_options = (raw_settings >> 18) & 1;
 
         u32 macro_settings = 0xAB;
         mips_memcpy(&macro_settings, argv[1] + 4, 4);
