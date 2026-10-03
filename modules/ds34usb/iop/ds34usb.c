@@ -321,14 +321,11 @@ static int xboxusb_send_init(int pad)
     if (ds34pad[pad].status & DS34USB_STATE_INIT_SENT)
         return 1;
 
-    u16 pid = ds34pad[pad].pid;
-    if (pid == 0x028E || pid == 0x0719 || pid == 0x028F || pid == 0x02A1 || pid == 0x0291 || is_xbox_vendor(ds34pad[pad].vid, ds34pad[pad].pid)) {
-        mips_memset(usb_ctrl_buf, 0, 20);
-        UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf, NULL, NULL);
+    mips_memset(usb_ctrl_buf, 0, 20);
+    UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf, NULL, NULL);
 
-        xboxusb_send_packet_raw(pad, xbox360_led_p1, sizeof(xbox360_led_p1));
-        xboxusb_send_packet_raw(pad, xbox360_init_cmd, sizeof(xbox360_init_cmd));
-    }
+    xboxusb_send_packet_raw(pad, xbox360_led_p1, sizeof(xbox360_led_p1));
+    xboxusb_send_packet_raw(pad, xbox360_init_cmd, sizeof(xbox360_init_cmd));
 
     ds34pad[pad].status |= DS34USB_STATE_INIT_SENT;
     return 1;
@@ -451,6 +448,43 @@ static void xboxusb_translate_report(u8 *in, int pad)
         ly = 255 - xboxusb_axis_to_ds2(in[12], in[13]);
         rx = xboxusb_axis_to_ds2(in[14], in[15]);
         ry = 255 - xboxusb_axis_to_ds2(in[16], in[17]);
+    } else {
+        // Universal HID / DInput / PS3 / Switch report fallback for USB cable connection
+        int off = (in[0] <= 0x05) ? 1 : 0;
+
+        lx = in[0 + off];
+        ly = in[1 + off];
+        rx = in[2 + off];
+        ry = in[3 + off];
+
+        u8 hat = in[4 + off] & 0x0F;
+        u8 b1 = in[5 + off];
+        u8 b2 = in[6 + off];
+
+        switch (hat) {
+            case 0: buttons |= DS2ButtonUp; break;
+            case 1: buttons |= DS2ButtonUp | DS2ButtonRight; break;
+            case 2: buttons |= DS2ButtonRight; break;
+            case 3: buttons |= DS2ButtonDown | DS2ButtonRight; break;
+            case 4: buttons |= DS2ButtonDown; break;
+            case 5: buttons |= DS2ButtonDown | DS2ButtonLeft; break;
+            case 6: buttons |= DS2ButtonLeft; break;
+            case 7: buttons |= DS2ButtonUp | DS2ButtonLeft; break;
+        }
+
+        if (b1 & 0x01) buttons |= DS2ButtonCross;
+        if (b1 & 0x02) buttons |= DS2ButtonCircle;
+        if (b1 & 0x04) buttons |= DS2ButtonSquare;
+        if (b1 & 0x08) buttons |= DS2ButtonTriangle;
+        if (b1 & 0x10) buttons |= DS2ButtonL1;
+        if (b1 & 0x20) buttons |= DS2ButtonR1;
+        if (b1 & 0x40) { buttons |= DS2ButtonL2; lt = 255; }
+        if (b1 & 0x80) { buttons |= DS2ButtonR2; rt = 255; }
+
+        if (b2 & 0x01) buttons |= DS2ButtonSelect;
+        if (b2 & 0x02) buttons |= DS2ButtonStart;
+        if (b2 & 0x04) buttons |= DS2ButtonL3;
+        if (b2 & 0x08) buttons |= DS2ButtonR3;
     }
 
     u8 right_p = (buttons & DS2ButtonRight) ? 255 : 0;
