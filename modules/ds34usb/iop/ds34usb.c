@@ -448,7 +448,7 @@ static void xboxusb_translate_report(u8 *in, int pad)
         ly = 255 - xboxusb_axis_to_ds2(in[12], in[13]);
         rx = xboxusb_axis_to_ds2(in[14], in[15]);
         ry = 255 - xboxusb_axis_to_ds2(in[16], in[17]);
-    } else if (in[0] == 0x01) { // HID Report ID 0x01 (DirectInput / PS3 / Switch Gamepad via USB Cable)
+    } else if (in[0] == 0x01 && in[1] != 0x03) { // HID Report ID 0x01 (DirectInput / PS3 / Switch Gamepad via USB Cable)
         lx = in[1];
         ly = in[2];
         rx = in[3];
@@ -459,15 +459,17 @@ static void xboxusb_translate_report(u8 *in, int pad)
         u8 b2 = in[6];
         u8 b3 = in[7];
 
-        switch (hat) {
-            case 0: buttons |= DS2ButtonUp; break;
-            case 1: buttons |= DS2ButtonUp | DS2ButtonRight; break;
-            case 2: buttons |= DS2ButtonRight; break;
-            case 3: buttons |= DS2ButtonDown | DS2ButtonRight; break;
-            case 4: buttons |= DS2ButtonDown; break;
-            case 5: buttons |= DS2ButtonDown | DS2ButtonLeft; break;
-            case 6: buttons |= DS2ButtonLeft; break;
-            case 7: buttons |= DS2ButtonUp | DS2ButtonLeft; break;
+        if (hat <= 7) {
+            switch (hat) {
+                case 0: buttons |= DS2ButtonUp; break;
+                case 1: buttons |= DS2ButtonUp | DS2ButtonRight; break;
+                case 2: buttons |= DS2ButtonRight; break;
+                case 3: buttons |= DS2ButtonDown | DS2ButtonRight; break;
+                case 4: buttons |= DS2ButtonDown; break;
+                case 5: buttons |= DS2ButtonDown | DS2ButtonLeft; break;
+                case 6: buttons |= DS2ButtonLeft; break;
+                case 7: buttons |= DS2ButtonUp | DS2ButtonLeft; break;
+            }
         }
 
         // Face buttons (Square, Cross, Circle, Triangle)
@@ -496,15 +498,17 @@ static void xboxusb_translate_report(u8 *in, int pad)
         u8 b1 = in[5];
         u8 b2 = in[6];
 
-        switch (hat) {
-            case 0: buttons |= DS2ButtonUp; break;
-            case 1: buttons |= DS2ButtonUp | DS2ButtonRight; break;
-            case 2: buttons |= DS2ButtonRight; break;
-            case 3: buttons |= DS2ButtonDown | DS2ButtonRight; break;
-            case 4: buttons |= DS2ButtonDown; break;
-            case 5: buttons |= DS2ButtonDown | DS2ButtonLeft; break;
-            case 6: buttons |= DS2ButtonLeft; break;
-            case 7: buttons |= DS2ButtonUp | DS2ButtonLeft; break;
+        if (hat <= 7) {
+            switch (hat) {
+                case 0: buttons |= DS2ButtonUp; break;
+                case 1: buttons |= DS2ButtonUp | DS2ButtonRight; break;
+                case 2: buttons |= DS2ButtonRight; break;
+                case 3: buttons |= DS2ButtonDown | DS2ButtonRight; break;
+                case 4: buttons |= DS2ButtonDown; break;
+                case 5: buttons |= DS2ButtonDown | DS2ButtonLeft; break;
+                case 6: buttons |= DS2ButtonLeft; break;
+                case 7: buttons |= DS2ButtonUp | DS2ButtonLeft; break;
+            }
         }
 
         if (b1 & 0x01) buttons |= DS2ButtonCross;
