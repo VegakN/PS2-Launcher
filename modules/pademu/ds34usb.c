@@ -52,6 +52,9 @@ static const u8 xboxone_power_on[] = {0x05, 0x20, 0x00, 0x01, 0x00};
 static const u8 xboxone_s_init[] = {0x05, 0x20, 0x00, 0x0F, 0x06};
 static const u8 xboxone_led_on[] = {0x0A, 0x20, 0x00, 0x03, 0x00, 0x01, 0x14};
 static const u8 xboxone_auth_done[] = {0x06, 0x20, 0x00, 0x02, 0x01, 0x00};
+static const u8 xbox360_led_p1[] = {0x01, 0x03, 0x02};
+static const u8 xbox360_init_cmd[] = {0x01, 0x03, 0x10};
+static u8 usb_ctrl_buf[32] __attribute((aligned(4))) = {0};
 
 static u8 rgbled_patterns[][2][3] =
     {
@@ -92,9 +95,18 @@ static void xboxusb_update_axis_center(int pad, const u8 *data);
 static void xboxusb_apply_buttons(const u8 *in, struct ds2report *out);
 static void xboxusb_translate_input(int pad, const u8 *in, struct ds2report *out);
 static int xboxusb_send_packet(int pad, const u8 *data, int len);
+static int xboxusb_send_packet_raw(int pad, const u8 *data, int len);
 static int xboxusb_send_init(int pad);
 
 ds34usb_device ds34pad[MAX_PADS];
+
+static int is_xbox_vendor(u16 vid, u16 pid)
+{
+    if (vid == XBOX_VENDOR_MICROSOFT) return 1;
+    if (vid == 0x0E6F || vid == 0x0738 || vid == 0x1532 || vid == 0x24C6 || vid == 0x11C0 || vid == 0x256F || vid == 0x146B || vid == 0x0F0D || vid == 0x20D6 || vid == 0x057E) return 1;
+    if (pid == 0x028E || pid == 0x028F || pid == 0x02A1 || pid == 0x0719 || pid == 0x0291 || pid == 0x02EA || pid == 0x0B12 || pid == 0x0B13) return 1;
+    return 0;
+}
 
 int usb_probe(int devId)
 {
@@ -115,7 +127,7 @@ int usb_probe(int devId)
     if (device->idVendor == DS34_VID && (device->idProduct == DS3_PID || device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM))
         return 1;
 
-    if (device->idVendor == XBOX_VENDOR_MICROSOFT)
+    if (is_xbox_vendor(device->idVendor, device->idProduct))
         return 1;
 
     return 0;
@@ -123,11 +135,9 @@ int usb_probe(int devId)
 
 int usb_connect(int devId)
 {
-    int pad, epCount;
+    int pad;
     UsbDeviceDescriptor *device;
     UsbConfigDescriptor *config;
-    UsbInterfaceDescriptor *interface;
-    UsbEndpointDescriptor *endpoint;
 
     DPRINTF("DS34USB: connect: devId=%i\n", devId);
 
@@ -155,47 +165,64 @@ int usb_connect(int devId)
     ds34pad[pad].pid = device->idProduct;
 
     ds34pad[pad].status = DS34USB_STATE_AUTHORIZED;
-
     ds34pad[pad].controlEndp = UsbOpenEndpoint(devId, NULL);
+    ds34pad[pad].interruptEndp = -1;
+    ds34pad[pad].outEndp = -1;
 
-    interface = (UsbInterfaceDescriptor *)((char *)config + config->bLength);
-
-    if (device->idVendor == XBOX_VENDOR_MICROSOFT) {
+    if (is_xbox_vendor(device->idVendor, device->idProduct)) {
         ds34pad[pad].type = XBOX_USB;
         ds34pad[pad].analog_btn = 1;
         xbox_axis_center_valid[pad] = 0;
-        epCount = interface->bNumEndpoints;
     } else if (device->idProduct == DS3_PID) {
         ds34pad[pad].type = DS3;
-        epCount = interface->bNumEndpoints - 1;
     } else if (device->idProduct == GUITAR_HERO_PS3_PID) {
         ds34pad[pad].type = GUITAR_GH;
-        epCount = interface->bNumEndpoints - 1;
     } else if (device->idProduct == ROCK_BAND_PS3_PID) {
         ds34pad[pad].type = GUITAR_RB;
-        epCount = interface->bNumEndpoints - 1;
     } else {
         ds34pad[pad].type = DS4;
-        epCount = 20; // ds4 v2 returns interface->bNumEndpoints as 0
     }
 
-    endpoint = (UsbEndpointDescriptor *)UsbGetDeviceStaticDescriptor(devId, NULL, USB_DT_ENDPOINT);
+    char *desc = (char *)config + config->bLength;
+    int len = config->wTotalLength - config->bLength;
 
-    do {
-        if (endpoint->bmAttributes == USB_ENDPOINT_XFER_INT) {
-            if ((endpoint->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN && ds34pad[pad].interruptEndp < 0) {
-                ds34pad[pad].interruptEndp = UsbOpenEndpointAligned(devId, endpoint);
-                DPRINTF("DS34USB: register Event endpoint id =%i addr=%02X packetSize=%i\n", ds34pad[pad].interruptEndp, endpoint->bEndpointAddress, (unsigned short int)endpoint->wMaxPacketSizeHB << 8 | endpoint->wMaxPacketSizeLB);
-            }
-            if ((endpoint->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_OUT && ds34pad[pad].outEndp < 0) {
-                ds34pad[pad].outEndp = UsbOpenEndpointAligned(devId, endpoint);
-                DPRINTF("DS34USB: register Output endpoint id =%i addr=%02X packetSize=%i\n", ds34pad[pad].outEndp, endpoint->bEndpointAddress, (unsigned short int)endpoint->wMaxPacketSizeHB << 8 | endpoint->wMaxPacketSizeLB);
+    while (len > 0) {
+        u8 bLength = desc[0];
+        u8 bDescriptorType = desc[1];
+
+        if (bLength == 0) break;
+
+        if (bDescriptorType == USB_DT_ENDPOINT) {
+            UsbEndpointDescriptor *ep = (UsbEndpointDescriptor *)desc;
+
+            if (ep->bmAttributes == USB_ENDPOINT_XFER_INT) {
+                if ((ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN && ds34pad[pad].interruptEndp < 0) {
+                    ds34pad[pad].interruptEndp = UsbOpenEndpointAligned(devId, ep);
+                    DPRINTF("DS34USB: register Event endpoint id =%i addr=%02X packetSize=%i\n", ds34pad[pad].interruptEndp, ep->bEndpointAddress, (unsigned short int)ep->wMaxPacketSizeHB << 8 | ep->wMaxPacketSizeLB);
+                }
+                if ((ep->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_OUT && ds34pad[pad].outEndp < 0) {
+                    ds34pad[pad].outEndp = UsbOpenEndpointAligned(devId, ep);
+                    DPRINTF("DS34USB: register Output endpoint id =%i addr=%02X packetSize=%i\n", ds34pad[pad].outEndp, ep->bEndpointAddress, (unsigned short int)ep->wMaxPacketSizeHB << 8 | ep->wMaxPacketSizeLB);
+                }
             }
         }
 
-        endpoint = (UsbEndpointDescriptor *)((char *)endpoint + endpoint->bLength);
+        desc += bLength;
+        len -= bLength;
+    }
 
-    } while (epCount--);
+    if (ds34pad[pad].interruptEndp < 0 || (ds34pad[pad].type != DS3 && ds34pad[pad].outEndp < 0)) {
+        usb_release(pad);
+        return 1;
+    }
+
+    ds34pad[pad].status |= DS34USB_STATE_CONNECTED;
+
+    UsbSetDeviceConfiguration(ds34pad[pad].controlEndp, config->bConfigurationValue, usb_config_set, (void *)pad);
+    SignalSema(ds34pad[pad].sema);
+
+    return 0;
+}
 
     if (ds34pad[pad].interruptEndp < 0 || ds34pad[pad].outEndp < 0) {
         usb_release(pad);
@@ -427,7 +454,7 @@ static void readReport(u8 *data, int pad_idx)
 
 static int xboxusb_is_input_packet(const u8 *data)
 {
-    return data[0] == XBOXUSB_INPUT_PACKET;
+    return data[0] == XBOXUSB_INPUT_PACKET || data[0] == 0x00;
 }
 
 static void xboxusb_poll_cb(int resultCode, int bytes, void *arg)
@@ -448,60 +475,20 @@ static void xboxusb_poll_cb(int resultCode, int bytes, void *arg)
     xbox_poll_pending = 0;
 }
 
-static void xboxusb_apply_buttons(const u8 *in, struct ds2report *out)
+static int xboxusb_axis_to_ds2(u8 low, u8 high)
 {
-    u16 buttons = 0;
-    u16 lt = in[6] | (in[7] << 8);
-    u16 rt = in[8] | (in[9] << 8);
+    int value = (short)((high << 8) | low);
 
-    if (in[5] & 0x01)
-        buttons |= DS2ButtonUp;
-    if (in[5] & 0x02)
-        buttons |= DS2ButtonDown;
-    if (in[5] & 0x04)
-        buttons |= DS2ButtonLeft;
-    if (in[5] & 0x08)
-        buttons |= DS2ButtonRight;
-    if (in[5] & 0x10)
-        buttons |= DS2ButtonL1;
-    if (in[5] & 0x20)
-        buttons |= DS2ButtonR1;
-    if (in[5] & 0x40)
-        buttons |= DS2ButtonL3;
-    if (in[5] & 0x80)
-        buttons |= DS2ButtonR3;
+    if (value > -12000 && value < 12000)
+        value = 0;
 
-    if (in[4] & 0x04)
-        buttons |= DS2ButtonStart;
-    if (in[4] & 0x08)
-        buttons |= DS2ButtonSelect;
-    if (in[4] & 0x10)
-        buttons |= DS2ButtonCross;
-    if (in[4] & 0x20)
-        buttons |= DS2ButtonCircle;
-    if (in[4] & 0x40)
-        buttons |= DS2ButtonSquare;
-    if (in[4] & 0x80)
-        buttons |= DS2ButtonTriangle;
+    value = (value >> 8) + 128;
+    if (value < 0)
+        value = 0;
+    if (value > 255)
+        value = 255;
 
-    if (lt > 0)
-        buttons |= DS2ButtonL2;
-    if (rt > 0)
-        buttons |= DS2ButtonR2;
-
-    out->nButtonState = ~buttons;
-    out->PressureUp = (buttons & DS2ButtonUp) ? 0xFF : 0x00;
-    out->PressureDown = (buttons & DS2ButtonDown) ? 0xFF : 0x00;
-    out->PressureLeft = (buttons & DS2ButtonLeft) ? 0xFF : 0x00;
-    out->PressureRight = (buttons & DS2ButtonRight) ? 0xFF : 0x00;
-    out->PressureTriangle = (buttons & DS2ButtonTriangle) ? 0xFF : 0x00;
-    out->PressureCircle = (buttons & DS2ButtonCircle) ? 0xFF : 0x00;
-    out->PressureCross = (buttons & DS2ButtonCross) ? 0xFF : 0x00;
-    out->PressureSquare = (buttons & DS2ButtonSquare) ? 0xFF : 0x00;
-    out->PressureL1 = (buttons & DS2ButtonL1) ? 0xFF : 0x00;
-    out->PressureR1 = (buttons & DS2ButtonR1) ? 0xFF : 0x00;
-    out->PressureL2 = lt > 0x3FF ? 0xFF : (lt >> 2);
-    out->PressureR2 = rt > 0x3FF ? 0xFF : (rt >> 2);
+    return value;
 }
 
 static void xboxusb_poll_thread(void *arg)
@@ -529,6 +516,7 @@ static void xboxusb_poll_thread(void *arg)
 static void xboxusb_update_axis_center(int pad, const u8 *data)
 {
     const u8 *in = data;
+    if (in[0] == 0x00) return;
 
     xbox_axis_center[pad][0] = (short)((in[11] << 8) | in[10]);
     xbox_axis_center[pad][1] = (short)((in[13] << 8) | in[12]);
@@ -560,11 +548,83 @@ static int xboxusb_axis_to_ds2_centered(int pad, int axis, u8 low, u8 high, int 
 
 static void xboxusb_translate_input(int pad, const u8 *in, struct ds2report *out)
 {
-    xboxusb_apply_buttons(in, out);
-    out->LeftStickX = xboxusb_axis_to_ds2_centered(pad, 0, in[10], in[11], 0);
-    out->LeftStickY = xboxusb_axis_to_ds2_centered(pad, 1, in[12], in[13], 1);
-    out->RightStickX = xboxusb_axis_to_ds2_centered(pad, 2, in[14], in[15], 0);
-    out->RightStickY = xboxusb_axis_to_ds2_centered(pad, 3, in[16], in[17], 1);
+    u16 buttons = 0;
+    u16 lt = 0, rt = 0;
+
+    if (in[0] == 0x00) {
+        lt = in[4];
+        rt = in[5];
+
+        if (in[2] & 0x01) buttons |= DS2ButtonUp;
+        if (in[2] & 0x02) buttons |= DS2ButtonDown;
+        if (in[2] & 0x04) buttons |= DS2ButtonLeft;
+        if (in[2] & 0x08) buttons |= DS2ButtonRight;
+        if (in[2] & 0x10) buttons |= DS2ButtonStart;
+        if (in[2] & 0x20) buttons |= DS2ButtonSelect;
+        if (in[2] & 0x40) buttons |= DS2ButtonL3;
+        if (in[2] & 0x80) buttons |= DS2ButtonR3;
+
+        if (in[3] & 0x01) buttons |= DS2ButtonL1;
+        if (in[3] & 0x02) buttons |= DS2ButtonR1;
+        if (in[3] & 0x10) buttons |= DS2ButtonCross;
+        if (in[3] & 0x20) buttons |= DS2ButtonCircle;
+        if (in[3] & 0x40) buttons |= DS2ButtonSquare;
+        if (in[3] & 0x80) buttons |= DS2ButtonTriangle;
+
+        if (lt > 0) buttons |= DS2ButtonL2;
+        if (rt > 0) buttons |= DS2ButtonR2;
+
+        out->nButtonState = ~buttons;
+        out->LeftStickX = xboxusb_axis_to_ds2(in[6], in[7]);
+        out->LeftStickY = 255 - xboxusb_axis_to_ds2(in[8], in[9]);
+        out->RightStickX = xboxusb_axis_to_ds2(in[10], in[11]);
+        out->RightStickY = 255 - xboxusb_axis_to_ds2(in[12], in[13]);
+
+        out->PressureL2 = lt;
+        out->PressureR2 = rt;
+    } else {
+        lt = in[6] | (in[7] << 8);
+        rt = in[8] | (in[9] << 8);
+
+        if (in[5] & 0x01) buttons |= DS2ButtonUp;
+        if (in[5] & 0x02) buttons |= DS2ButtonDown;
+        if (in[5] & 0x04) buttons |= DS2ButtonLeft;
+        if (in[5] & 0x08) buttons |= DS2ButtonRight;
+        if (in[5] & 0x10) buttons |= DS2ButtonL1;
+        if (in[5] & 0x20) buttons |= DS2ButtonR1;
+        if (in[5] & 0x40) buttons |= DS2ButtonL3;
+        if (in[5] & 0x80) buttons |= DS2ButtonR3;
+
+        if (in[4] & 0x04) buttons |= DS2ButtonStart;
+        if (in[4] & 0x08) buttons |= DS2ButtonSelect;
+        if (in[4] & 0x10) buttons |= DS2ButtonCross;
+        if (in[4] & 0x20) buttons |= DS2ButtonCircle;
+        if (in[4] & 0x40) buttons |= DS2ButtonSquare;
+        if (in[4] & 0x80) buttons |= DS2ButtonTriangle;
+
+        if (lt > 0) buttons |= DS2ButtonL2;
+        if (rt > 0) buttons |= DS2ButtonR2;
+
+        out->nButtonState = ~buttons;
+        out->LeftStickX = xboxusb_axis_to_ds2_centered(pad, 0, in[10], in[11], 0);
+        out->LeftStickY = xboxusb_axis_to_ds2_centered(pad, 1, in[12], in[13], 1);
+        out->RightStickX = xboxusb_axis_to_ds2_centered(pad, 2, in[14], in[15], 0);
+        out->RightStickY = xboxusb_axis_to_ds2_centered(pad, 3, in[16], in[17], 1);
+
+        out->PressureL2 = lt > 0x3FF ? 0xFF : (lt >> 2);
+        out->PressureR2 = rt > 0x3FF ? 0xFF : (rt >> 2);
+    }
+
+    out->PressureUp = (buttons & DS2ButtonUp) ? 0xFF : 0x00;
+    out->PressureDown = (buttons & DS2ButtonDown) ? 0xFF : 0x00;
+    out->PressureLeft = (buttons & DS2ButtonLeft) ? 0xFF : 0x00;
+    out->PressureRight = (buttons & DS2ButtonRight) ? 0xFF : 0x00;
+    out->PressureTriangle = (buttons & DS2ButtonTriangle) ? 0xFF : 0x00;
+    out->PressureCircle = (buttons & DS2ButtonCircle) ? 0xFF : 0x00;
+    out->PressureCross = (buttons & DS2ButtonCross) ? 0xFF : 0x00;
+    out->PressureSquare = (buttons & DS2ButtonSquare) ? 0xFF : 0x00;
+    out->PressureL1 = (buttons & DS2ButtonL1) ? 0xFF : 0x00;
+    out->PressureR1 = (buttons & DS2ButtonR1) ? 0xFF : 0x00;
 }
 
 static int xboxusb_send_packet(int pad, const u8 *data, int len)
@@ -586,19 +646,46 @@ static int xboxusb_send_packet(int pad, const u8 *data, int len)
     return ret == USB_RC_OK;
 }
 
+static int xboxusb_send_packet_raw(int pad, const u8 *data, int len)
+{
+    int ret;
+
+    if (ds34pad[pad].outEndp < 0 || len <= 0 || len > MAX_BUFFER_SIZE)
+        return 0;
+
+    PollSema(ds34pad[pad].cmd_sema);
+    mips_memset(usb_buf, 0, sizeof(usb_buf));
+    mips_memcpy(usb_buf, data, len);
+
+    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, len, usb_cmd_cb, (void *)pad);
+    if (ret == USB_RC_OK)
+        TransferWait(ds34pad[pad].cmd_sema);
+
+    return ret == USB_RC_OK;
+}
+
 static int xboxusb_send_init(int pad)
 {
     if (ds34pad[pad].status & DS34USB_STATE_INIT_SENT)
         return 1;
 
-    if (!xboxusb_send_packet(pad, xboxone_power_on, sizeof(xboxone_power_on)))
-        return 0;
-    if (ds34pad[pad].pid == 0x02EA)
-        xboxusb_send_packet(pad, xboxone_s_init, sizeof(xboxone_s_init));
-    if (!xboxusb_send_packet(pad, xboxone_led_on, sizeof(xboxone_led_on)))
-        return 0;
-    if (!xboxusb_send_packet(pad, xboxone_auth_done, sizeof(xboxone_auth_done)))
-        return 0;
+    u16 pid = ds34pad[pad].pid;
+    if (pid == 0x028E || pid == 0x0719 || pid == 0x028F || pid == 0x02A1 || pid == 0x0291 || is_xbox_vendor(ds34pad[pad].vid, ds34pad[pad].pid)) {
+        mips_memset(usb_ctrl_buf, 0, 20);
+        UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf, NULL, NULL);
+
+        xboxusb_send_packet_raw(pad, xbox360_led_p1, sizeof(xbox360_led_p1));
+        xboxusb_send_packet_raw(pad, xbox360_init_cmd, sizeof(xbox360_init_cmd));
+    } else {
+        if (!xboxusb_send_packet(pad, xboxone_power_on, sizeof(xboxone_power_on)))
+            return 0;
+        if (ds34pad[pad].pid == 0x02EA)
+            xboxusb_send_packet(pad, xboxone_s_init, sizeof(xboxone_s_init));
+        if (!xboxusb_send_packet(pad, xboxone_led_on, sizeof(xboxone_led_on)))
+            return 0;
+        if (!xboxusb_send_packet(pad, xboxone_auth_done, sizeof(xboxone_auth_done)))
+            return 0;
+    }
 
     ds34pad[pad].status |= DS34USB_STATE_INIT_SENT;
     return 1;
