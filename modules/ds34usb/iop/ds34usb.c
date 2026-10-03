@@ -321,11 +321,13 @@ static int xboxusb_send_init(int pad)
     if (ds34pad[pad].status & DS34USB_STATE_INIT_SENT)
         return 1;
 
-    mips_memset(usb_ctrl_buf, 0, 20);
-    UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf, NULL, NULL);
+    if (is_xbox_vendor(ds34pad[pad].vid, ds34pad[pad].pid)) {
+        mips_memset(usb_ctrl_buf, 0, 20);
+        UsbControlTransfer(ds34pad[pad].controlEndp, 0xC1, 0x01, 0x0100, 0x00, 20, usb_ctrl_buf, NULL, NULL);
 
-    xboxusb_send_packet_raw(pad, xbox360_led_p1, sizeof(xbox360_led_p1));
-    xboxusb_send_packet_raw(pad, xbox360_init_cmd, sizeof(xbox360_init_cmd));
+        xboxusb_send_packet_raw(pad, xbox360_led_p1, sizeof(xbox360_led_p1));
+        xboxusb_send_packet_raw(pad, xbox360_init_cmd, sizeof(xbox360_init_cmd));
+    }
 
     ds34pad[pad].status |= DS34USB_STATE_INIT_SENT;
     return 1;
@@ -448,16 +450,20 @@ static void xboxusb_translate_report(u8 *in, int pad)
         ly = 255 - xboxusb_axis_to_ds2(in[12], in[13]);
         rx = xboxusb_axis_to_ds2(in[14], in[15]);
         ry = 255 - xboxusb_axis_to_ds2(in[16], in[17]);
-    } else if (in[0] == 0x01 && in[1] != 0x03) { // HID Report ID 0x01 (DirectInput / PS3 / Switch Gamepad via USB Cable)
+    } else if (in[0] == 0x01) { // HID Report ID 0x01 (DirectInput / PS3 / Switch Gamepad via USB Cable)
+        if (in[1] == 0x03)
+            return;
+
         lx = in[1];
         ly = in[2];
         rx = in[3];
         ry = in[4];
 
         u8 hat = in[5] & 0x0F;
-        u8 b1 = in[5] >> 4;
-        u8 b2 = in[6];
-        u8 b3 = in[7];
+        u8 b1_high = in[5] >> 4;
+        u8 b1 = in[6];
+        u8 b2 = in[7];
+        u8 b3 = in[8];
 
         if (hat <= 7) {
             switch (hat) {
@@ -472,22 +478,21 @@ static void xboxusb_translate_report(u8 *in, int pad)
             }
         }
 
-        // Face buttons (Square, Cross, Circle, Triangle)
-        if (b1 & 0x01) buttons |= DS2ButtonSquare;
-        if (b1 & 0x02) buttons |= DS2ButtonCross;
-        if (b1 & 0x04) buttons |= DS2ButtonCircle;
-        if (b1 & 0x08) buttons |= DS2ButtonTriangle;
+        if ((b1 & 0x01) || (b1_high & 0x01)) buttons |= DS2ButtonCross;
+        if ((b1 & 0x02) || (b1_high & 0x02)) buttons |= DS2ButtonCircle;
+        if ((b1 & 0x04) || (b1_high & 0x04)) buttons |= DS2ButtonSquare;
+        if ((b1 & 0x08) || (b1_high & 0x08)) buttons |= DS2ButtonTriangle;
 
-        // Shoulder & Center buttons
-        if (b2 & 0x01) buttons |= DS2ButtonL1;
-        if (b2 & 0x02) buttons |= DS2ButtonR1;
-        if (b2 & 0x04) { buttons |= DS2ButtonL2; lt = 255; }
-        if (b2 & 0x08) { buttons |= DS2ButtonR2; rt = 255; }
-        if (b2 & 0x10) buttons |= DS2ButtonSelect;
-        if (b2 & 0x20) buttons |= DS2ButtonStart;
-        if (b2 & 0x40) buttons |= DS2ButtonL3;
-        if (b2 & 0x80) buttons |= DS2ButtonR3;
-        if (b3 & 0x01) buttons |= DS2ButtonSelect;
+        if ((b1 & 0x10) || (b2 & 0x01)) buttons |= DS2ButtonL1;
+        if ((b1 & 0x20) || (b2 & 0x02)) buttons |= DS2ButtonR1;
+        if ((b1 & 0x40) || (b2 & 0x04)) { buttons |= DS2ButtonL2; lt = 255; }
+        if ((b1 & 0x80) || (b2 & 0x08)) { buttons |= DS2ButtonR2; rt = 255; }
+
+        if ((b2 & 0x10) || (b2 & 0x01) || (b3 & 0x01)) buttons |= DS2ButtonSelect;
+        if ((b2 & 0x20) || (b2 & 0x02) || (b3 & 0x02)) buttons |= DS2ButtonStart;
+        if ((b2 & 0x40) || (b2 & 0x04)) buttons |= DS2ButtonL3;
+        if ((b2 & 0x80) || (b2 & 0x08)) buttons |= DS2ButtonR3;
+    }
     } else { // Raw DInput HID without Report ID
         lx = in[0];
         ly = in[1];
