@@ -23,6 +23,10 @@
 #include "include/sound.h"
 #include "include/guigame.h"
 
+#ifdef PADEMU
+#include <libds34usb.h>
+#endif
+
 #include <math.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -1547,6 +1551,15 @@ static void guiDrawOverlays()
     // BLURT output
     // if (gEnableDebug)
     //     fntRenderString(gTheme->fonts[0], 0, screenHeight - 24, ALIGN_NONE, 0, 0, blurttext, GS_SETREG_RGBA(255, 255, 0, 128));
+
+#ifdef PADEMU
+    if (gEnablePadEmu) {
+        int usbStatus = ds34usb_get_status(0);
+        char padDebugStr[128];
+        snprintf(padDebugStr, sizeof(padDebugStr), "USB CONTROLLER: %s [0x%02X]", (usbStatus & 0x08) ? "CONNECTED & ACTIVE" : ((usbStatus & 0x04) ? "CONNECTED" : "NOT DETECTED"), usbStatus);
+        fntRenderString(gTheme->fonts[0], 10, screenHeight - 20, ALIGN_LEFT, 0, 0, padDebugStr, (usbStatus & 0x08) ? GS_SETREG_RGBA(0x00, 0xFF, 0x00, 0xE0) : GS_SETREG_RGBA(0xFF, 0x55, 0x55, 0xE0));
+    }
+#endif
 }
 
 static void guiReadPads()

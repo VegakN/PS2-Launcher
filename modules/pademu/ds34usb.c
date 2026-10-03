@@ -130,6 +130,9 @@ int usb_probe(int devId)
     if (is_xbox_vendor(device->idVendor, device->idProduct))
         return 1;
 
+    if (device->bDeviceClass == 0x00 || device->bDeviceClass == 0xFF || device->bDeviceClass == 0x03)
+        return 1;
+
     return 0;
 }
 
@@ -169,18 +172,18 @@ int usb_connect(int devId)
     ds34pad[pad].interruptEndp = -1;
     ds34pad[pad].outEndp = -1;
 
-    if (is_xbox_vendor(device->idVendor, device->idProduct)) {
-        ds34pad[pad].type = XBOX_USB;
-        ds34pad[pad].analog_btn = 1;
-        xbox_axis_center_valid[pad] = 0;
-    } else if (device->idProduct == DS3_PID) {
+    if (device->idProduct == DS3_PID) {
         ds34pad[pad].type = DS3;
     } else if (device->idProduct == GUITAR_HERO_PS3_PID) {
         ds34pad[pad].type = GUITAR_GH;
     } else if (device->idProduct == ROCK_BAND_PS3_PID) {
         ds34pad[pad].type = GUITAR_RB;
-    } else {
+    } else if (device->idVendor == DS34_VID && (device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM)) {
         ds34pad[pad].type = DS4;
+    } else {
+        ds34pad[pad].type = XBOX_USB;
+        ds34pad[pad].analog_btn = 1;
+        xbox_axis_center_valid[pad] = 0;
     }
 
     char *desc = (char *)config + config->bLength;
@@ -211,7 +214,7 @@ int usb_connect(int devId)
         len -= bLength;
     }
 
-    if (ds34pad[pad].interruptEndp < 0 || (ds34pad[pad].type != DS3 && ds34pad[pad].outEndp < 0)) {
+    if (ds34pad[pad].interruptEndp < 0) {
         usb_release(pad);
         return 1;
     }
