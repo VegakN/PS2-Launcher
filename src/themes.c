@@ -1937,22 +1937,7 @@ static void triggerNetFetch(const char *title, const char *startup, const char *
         } else {
             strcpy(prefix, "mass0:");
         }
-        char probePath[256];
-        snprintf(probePath, sizeof(probePath), "%s/ART/%s_COV.png", prefix, startup);
-        int fd = debugOpenProbe(probePath);
-        if (fd >= 0) {
-            close(fd);
-            strncpy(matchedPath, probePath, sizeof(matchedPath) - 1);
-            matchedPath[sizeof(matchedPath) - 1] = '\0';
-        } else {
-            snprintf(probePath, sizeof(probePath), "%s/ART/%s_COV.jpg", prefix, startup);
-            fd = debugOpenProbe(probePath);
-            if (fd >= 0) {
-                close(fd);
-                strncpy(matchedPath, probePath, sizeof(matchedPath) - 1);
-                matchedPath[sizeof(matchedPath) - 1] = '\0';
-            }
-        }
+        snprintf(matchedPath, sizeof(matchedPath), "%s/ART/%s_COV.png", prefix, startup);
     }
     if (matchedPath[0] == '\0') {
         findBuiltInCoverForGame(title, matchedPath, sizeof(matchedPath));
@@ -1970,14 +1955,7 @@ static void triggerNetFetch(const char *title, const char *startup, const char *
         } else {
             strcpy(prefix, "mass0:");
         }
-        char probeLogo[256];
-        snprintf(probeLogo, sizeof(probeLogo), "%s/LOGO/%s_LOGO.png", prefix, startup);
-        int fd = debugOpenProbe(probeLogo);
-        if (fd >= 0) {
-            close(fd);
-            strncpy(logoPath, probeLogo, sizeof(logoPath) - 1);
-            logoPath[sizeof(logoPath) - 1] = '\0';
-        }
+        snprintf(logoPath, sizeof(logoPath), "%s/LOGO/%s_LOGO.png", prefix, startup);
     }
     strncpy(gNetCache[idx].logoPath, logoPath, sizeof(gNetCache[idx].logoPath) - 1);
     gNetCache[idx].logoPath[sizeof(gNetCache[idx].logoPath) - 1] = '\0';
