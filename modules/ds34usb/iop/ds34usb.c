@@ -364,8 +364,6 @@ static void usb_config_set(int result, int count, void *arg)
         led[1] = rgbled_patterns[pad][1][1];
         led[2] = rgbled_patterns[pad][1][2];
         led[3] = 0;
-    } else if (ds34pad[pad].type == XBOX_USB) {
-        xboxusb_send_init(pad);
     }
 
     if (ds34pad[pad].type != XBOX_USB) {
@@ -880,6 +878,11 @@ void ds34usb_get_data(char *dst, int size, int port)
         SignalSema(ds34pad[port].sema);
         return;
     }
+
+    // Initialization may wait for USB output; run it from the RPC thread,
+    // never from the USBD configuration callback.
+    if (ds34pad[port].type == XBOX_USB && !(ds34pad[port].status & DS34USB_STATE_INIT_SENT))
+        xboxusb_send_init(port);
 
     PollSema(ds34pad[port].sema);
 

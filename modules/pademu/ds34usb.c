@@ -68,10 +68,10 @@ static u8 usb_in_buf[MAX_PADS][MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) =
 static u8 usb_out_buf[MAX_PADS][MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {{0}};
 static u8 xbox_poll_buf[MAX_PADS][MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {{0}};
 static int usb_resulCode[MAX_PADS] = {1, 1, 1, 1};
-static int xbox_poll_sema = -1;
-static int xbox_poll_result = 1;
 static int xbox_poll_tid = -1;
-static int xbox_poll_pending = 0;
+static volatile int xbox_poll_result[MAX_PADS] = {1, 1, 1, 1};
+// 0 = idle, 1 = transfer in flight, 2 = completed and ready to consume.
+static volatile u8 xbox_poll_state[MAX_PADS] = {0};
 static short xbox_axis_center[MAX_PADS][4] = {{0}};
 static u8 xbox_axis_center_valid[MAX_PADS] = {0};
 
@@ -89,12 +89,11 @@ static void readReport(u8 *data, int pad);
 static int LEDRumble(u8 *led, u8 lrum, u8 rrum, int pad);
 static void TransferWait(int sema);
 static void TransferWaitTimeout(int sema, u32 timeout_lo);
-static int xboxusb_is_input_packet(const u8 *data);
+static int xboxusb_is_input_packet(const u8 *data, int bytes);
 static void xboxusb_poll_thread(void *arg);
 static void xboxusb_poll_cb(int resultCode, int bytes, void *arg);
 static int xboxusb_axis_to_ds2_centered(int pad, int axis, u8 low, u8 high, int invert);
 static void xboxusb_update_axis_center(int pad, const u8 *data);
-static void xboxusb_apply_buttons(const u8 *in, struct ds2report *out);
 static void xboxusb_translate_input(int pad, const u8 *in, struct ds2report *out);
 static int xboxusb_send_packet(int pad, const u8 *data, int len);
 static int xboxusb_send_packet_raw(int pad, const u8 *data, int len);
@@ -290,6 +289,7 @@ static void usb_release(int pad)
     ds34pad[pad].xbox_seq = 0;
     ds34pad[pad].status = DS34USB_STATE_DISCONNECTED;
     xbox_axis_center_valid[pad] = 0;
+    xbox_poll_state[pad] = 0;
 
     SignalSema(ds34pad[pad].sema);
 }
@@ -338,8 +338,9 @@ static void usb_config_set(int result, int count, void *arg)
         led[1] = rgbled_patterns[pad][1][1];
         led[2] = rgbled_patterns[pad][1][2];
         led[3] = 0;
-    } else if (ds34pad[pad].type == XBOX_USB)
-        xboxusb_send_init(pad);
+    }
+
+    // Xbox initialization can wait for USB output. The USBD callback must not wait.
 
     if (ds34pad[pad].type != XBOX_USB)
         LEDRumble(led, 0, 0, pad);
@@ -467,27 +468,28 @@ static void readReport(u8 *data, int pad_idx)
     }
 }
 
-static int xboxusb_is_input_packet(const u8 *data)
+static int xboxusb_is_input_packet(const u8 *data, int bytes)
 {
-    return 1;
+    if (bytes <= 0)
+        return 0;
+    if (data[0] == 0x00) {
+        if (bytes < 14)
+            return 0;
+        return bytes >= ((data[1] == 0x01 && data[3] == 0xF0) ? 16 : 14);
+    }
+    if (data[0] == 0x20)
+        return bytes >= 18;
+    if (data[0] == 0x01)
+        return bytes >= 9;
+    return bytes >= 8;
 }
 
 static void xboxusb_poll_cb(int resultCode, int bytes, void *arg)
 {
     int pad = (int)arg;
 
-    xbox_poll_result = resultCode;
-    WaitSema(ds34pad[pad].sema);
-    if (xbox_poll_result == USB_RC_OK && xboxusb_is_input_packet(xbox_poll_buf[pad])) {
-        if (!xbox_axis_center_valid[pad])
-            xboxusb_update_axis_center(pad, xbox_poll_buf[pad]);
-        xboxusb_translate_input(pad, xbox_poll_buf[pad], &ds34pad[pad].ds2);
-        padMacroPerform(&ds34pad[pad].ds2, 0);
-    }
-    SignalSema(ds34pad[pad].sema);
-
-    xbox_poll_result = 1;
-    xbox_poll_pending = 0;
+    xbox_poll_result[pad] = resultCode == USB_RC_OK && xboxusb_is_input_packet(xbox_poll_buf[pad], bytes) ? USB_RC_OK : 1;
+    xbox_poll_state[pad] = 2;
 }
 
 static int xboxusb_axis_to_ds2(u8 low, u8 high)
@@ -508,23 +510,40 @@ static int xboxusb_axis_to_ds2(u8 low, u8 high)
 
 static void xboxusb_poll_thread(void *arg)
 {
-    int pad, ret;
+    int pad, ret, active, init_required;
 
     while (1) {
-        if (!xbox_poll_pending) {
-            for (pad = 0; pad < MAX_PADS; pad++) {
-                if (ds34pad[pad].type != XBOX_USB || !(ds34pad[pad].status & DS34USB_STATE_CONFIGURED) || ds34pad[pad].interruptEndp < 0)
-                    continue;
+        active = 0;
+        for (pad = 0; pad < MAX_PADS; pad++) {
+            init_required = 0;
+            WaitSema(ds34pad[pad].sema);
+            if (ds34pad[pad].type == XBOX_USB &&
+                (ds34pad[pad].status & DS34USB_STATE_RUNNING) &&
+                ds34pad[pad].interruptEndp >= 0) {
+                active = 1;
+                if (!(ds34pad[pad].status & DS34USB_STATE_INIT_SENT))
+                    init_required = 1;
+                else {
+                    if (xbox_poll_state[pad] == 2) {
+                        if (xbox_poll_result[pad] == USB_RC_OK)
+                            readReport(xbox_poll_buf[pad], pad);
+                        xbox_poll_state[pad] = 0;
+                    }
 
-                xbox_poll_pending = 1;
-                ret = UsbInterruptTransfer(ds34pad[pad].interruptEndp, xbox_poll_buf[pad], MAX_BUFFER_SIZE, xboxusb_poll_cb, (void *)pad);
-                if (ret != USB_RC_OK)
-                    xbox_poll_pending = 0;
-                break;
+                    if (xbox_poll_state[pad] == 0) {
+                        xbox_poll_state[pad] = 1;
+                        ret = UsbInterruptTransfer(ds34pad[pad].interruptEndp, xbox_poll_buf[pad], MAX_BUFFER_SIZE, xboxusb_poll_cb, (void *)pad);
+                        if (ret != USB_RC_OK)
+                            xbox_poll_state[pad] = 0;
+                    }
+                }
             }
+            SignalSema(ds34pad[pad].sema);
+            if (init_required)
+                xboxusb_send_init(pad);
         }
 
-        DelayThread(16000);
+        DelayThread(active ? 1000 : 16000);
     }
 }
 
@@ -901,21 +920,21 @@ int ds34usb_get_data(u8 *dst, int size, int port)
 
     WaitSema(ds34pad[port].sema);
 
-    PollSema(ds34pad[port].sema);
-
-    // If a transfer already completed in background, process it immediately
-    if (!usb_resulCode[port]) {
-        readReport(usb_in_buf[port], port);
-        usb_resulCode[port] = 1;
+    // The polling thread keeps the latest Xbox report ready for the game.
+    // Never wait for a USB transfer in the game's pad read path.
+    if (ds34pad[port].type == XBOX_USB) {
+        mips_memcpy(dst, ds34pad[port].data, size);
+        ret = ds34pad[port].analog_btn & 1;
+        SignalSema(ds34pad[port].sema);
+        return ret;
     }
+
+    PollSema(ds34pad[port].sema);
 
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_in_buf[port], MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
-        if (ds34pad[port].type == XBOX_USB)
-            TransferWaitTimeout(ds34pad[port].sema, 8000);
-        else
-            TransferWait(ds34pad[port].sema);
+        TransferWait(ds34pad[port].sema);
 
         if (!usb_resulCode[port])
             readReport(usb_in_buf[port], port);
@@ -969,6 +988,8 @@ int ds34usb_get_status(int port)
         ret = DS34USB_STATE_RUNNING | DS34USB_STATE_CONNECTED | DS34USB_STATE_CONFIGURED | DS34USB_STATE_AUTHORIZED;
     else
         ret = ds34pad[port].status;
+    if (ret & DS34USB_STATE_RUNNING)
+        ret |= ds34pad[port].type << 8;
     SignalSema(ds34pad[port].sema);
 
     return ret;
@@ -992,6 +1013,7 @@ int ds34usb_get_model(int port)
 int ds34usb_init(u8 pads, u8 options)
 {
     int pad;
+    iop_thread_t thread;
 
     for (pad = 0; pad < MAX_PADS; pad++) {
         ds34pad[pad].status = 0;
@@ -1013,6 +1035,7 @@ int ds34usb_init(u8 pads, u8 options)
         ds34pad[pad].xbox_seq = 0;
         ds34pad[pad].enabled = (pads >> pad) & 1;
         ds34pad[pad].type = 0;
+        xbox_poll_state[pad] = 0;
 
         ds34pad[pad].data[0] = 0xFF;
         ds34pad[pad].data[1] = 0xFF;
@@ -1032,6 +1055,17 @@ int ds34usb_init(u8 pads, u8 options)
 
     if (UsbRegisterDriver(&usb_driver) != USB_RC_OK) {
         DPRINTF("DS34USB: Error registering USB devices\n");
+        return 0;
+    }
+
+    thread.attr = TH_C;
+    thread.thread = xboxusb_poll_thread;
+    thread.priority = 40;
+    thread.stacksize = 0x800;
+    thread.option = 0;
+    xbox_poll_tid = CreateThread(&thread);
+    if (xbox_poll_tid < 0 || StartThread(xbox_poll_tid, NULL) < 0) {
+        DPRINTF("DS34USB: Failed to start Xbox polling thread.\n");
         return 0;
     }
 
