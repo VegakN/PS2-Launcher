@@ -2180,10 +2180,12 @@ static int coverFileExists(const char *path)
         close(fd);
 
         ext = strrchr(path, '.');
+        /* Small, valid covers are still usable. OPL's PNG loader accepts
+         * images smaller than 1 KiB, so don't turn them into API misses. */
         if (ext != NULL && !strcasecmp(ext, ".png"))
-            valid = size > 1024 && memcmp(sig, pngSig, sizeof(pngSig)) == 0;
+            valid = size >= (int)sizeof(pngSig) && memcmp(sig, pngSig, sizeof(pngSig)) == 0;
         else if (ext != NULL && !strcasecmp(ext, ".jpg"))
-            valid = size > 1024 && sig[0] == 0xFF && sig[1] == 0xD8;
+            valid = size >= 4 && sig[0] == 0xFF && sig[1] == 0xD8;
 
         return valid;
     }
@@ -2199,10 +2201,8 @@ static int coverHasAsset(const char *prefix, const char *folder, const char *sta
     if (coverFileExists(path))
         return 1;
 
-    coverBuildAssetPath(path, sizeof(path), prefix, folder, startup, suffix, "jpg");
-    if (coverFileExists(path))
-        return 1;
-
+    /* texDiscoverLoad, used by OPL itself, decodes PNG only. A JPEG must not
+     * suppress a PNG download while remaining invisible in the launcher. */
     return 0;
 }
 
@@ -2526,7 +2526,9 @@ static int coverGameNeedsDownload(item_list_t *support, int id)
     if (startup == NULL || startup[0] == '\0')
         return 0;
 
-    return !(coverHasAsset(prefix, "ART", startup, "COV") && coverHasAsset(prefix, "LOGO", startup, "LOGO"));
+    /* This count is for game covers. Logos are optional decoration and must
+     * not make an already-covered game look missing or request another cover. */
+    return !coverHasAsset(prefix, "ART", startup, "COV");
 }
 
 void oplMarkGameCoverStatsDirty(void)
