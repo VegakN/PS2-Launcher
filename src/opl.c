@@ -3152,11 +3152,11 @@ static void init(void)
     while (!padStatus)
         padStatus = startPads();
     readPads();
-    if (!getKeyPressed(KEY_START)) {
-        _loadConfig(); // only try to restore config if emergency key is not being pressed
-    } else {
-        LOG("--- SKIPPING OPL CONFIG LOADING\n");
+    if (getKeyPressed(KEY_START) && !getKeyPressed(KEY_L1) && !getKeyPressed(KEY_R1) && !getKeyPressed(KEY_SELECT) && !getKeyPressed(KEY_L2) && !getKeyPressed(KEY_R2)) {
+        LOG("--- SKIPPING OPL CONFIG LOADING (EMERGENCY START HELD)\n");
         applyConfig(-1, -1, 0);
+    } else {
+        _loadConfig(); // load configs normally (including when booting from IGR reset combo)
     }
 
 
