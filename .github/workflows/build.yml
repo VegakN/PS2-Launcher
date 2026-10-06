@@ -68,3 +68,10 @@ jobs:
         name: PS2-Launcher-Compiled
         path: PS2L.ELF
         if-no-files-found: error
+
+    - name: Upload unpacked ELF for boot comparison
+      uses: actions/upload-artifact@v4
+      with:
+        name: PS2-Launcher-Unpacked
+        path: opl.elf
+        if-no-files-found: error
