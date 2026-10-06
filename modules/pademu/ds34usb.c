@@ -374,9 +374,6 @@ static void readReport(u8 *data, int pad_idx)
         padMacroPerform(&pad->ds2, report->PSButton);
     }
     if (pad->type == XBOX_USB) {
-        if (!xboxusb_is_input_packet(data))
-            return;
-
         if (!xbox_axis_center_valid[pad_idx])
             xboxusb_update_axis_center(pad_idx, data);
         xboxusb_translate_input(pad_idx, data, &pad->ds2);

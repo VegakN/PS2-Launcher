@@ -40,6 +40,14 @@ jobs:
         if make > build_log.txt 2>&1; then
           tail -n 40 build_log.txt
         else
+          error_line=$(grep -n -m 1 -E 'error:|undefined reference|No rule to make target' build_log.txt | cut -d: -f1)
+          if [ -n "$error_line" ]; then
+            start=$((error_line > 5 ? error_line - 5 : 1))
+            end=$((error_line + 10))
+            sed -n "${start},${end}p" build_log.txt | while IFS= read -r line; do
+              printf '::error::%s\n' "$line"
+            done
+          fi
           tail -n 100 build_log.txt
           exit 1
         fi
