@@ -903,11 +903,17 @@ int ds34usb_get_data(u8 *dst, int size, int port)
 
     PollSema(ds34pad[port].sema);
 
+    // If a transfer already completed in background, process it immediately
+    if (!usb_resulCode[port]) {
+        readReport(usb_in_buf[port], port);
+        usb_resulCode[port] = 1;
+    }
+
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_in_buf[port], MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
         if (ds34pad[port].type == XBOX_USB)
-            TransferWaitTimeout(ds34pad[port].sema, 5000);
+            TransferWaitTimeout(ds34pad[port].sema, 8000);
         else
             TransferWait(ds34pad[port].sema);
 
