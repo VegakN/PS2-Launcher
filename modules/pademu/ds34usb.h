@@ -41,6 +41,7 @@ typedef struct _usb_ds34
     };
     u8 analog_btn;
     u8 btn_delay;
+    u8 led_buf[64] __attribute((aligned(4)));
 } ds34usb_device;
 
 enum eDS34USBStatus {

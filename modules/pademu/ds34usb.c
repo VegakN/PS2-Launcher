@@ -489,8 +489,15 @@ static void xboxusb_poll_cb(int resultCode, int bytes, void *arg)
     }
     SignalSema(ds34pad[pad].sema);
 
-    xbox_poll_result = 1;
-    xbox_poll_pending = 0;
+    if (resultCode == USB_RC_OK) {
+        // Queue the next transfer immediately to drain the controller's queue and prevent latency
+        int ret = UsbInterruptTransfer(ds34pad[pad].interruptEndp, xbox_poll_buf, MAX_BUFFER_SIZE, xboxusb_poll_cb, (void *)pad);
+        if (ret != USB_RC_OK)
+            xbox_poll_pending = 0;
+    } else {
+        xbox_poll_result = 1;
+        xbox_poll_pending = 0;
+    }
 }
 
 static int xboxusb_axis_to_ds2(u8 low, u8 high)
@@ -761,16 +768,14 @@ static int xboxusb_send_packet(int pad, const u8 *data, int len)
         return 0;
 
     PollSema(ds34pad[pad].cmd_sema);
-    WaitSema(usb_buf_sema);
-    mips_memset(usb_buf, 0, sizeof(usb_buf));
-    mips_memcpy(usb_buf, data, len);
-    usb_buf[2] = ds34pad[pad].xbox_seq++;
+    
+    mips_memset(ds34pad[pad].led_buf, 0, 64);
+    mips_memcpy(ds34pad[pad].led_buf, data, len);
+    ds34pad[pad].led_buf[2] = ds34pad[pad].xbox_seq++;
 
-    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, len, usb_cmd_cb, (void *)pad);
+    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, ds34pad[pad].led_buf, len, usb_cmd_cb, (void *)pad);
     if (ret == USB_RC_OK)
         TransferWait(ds34pad[pad].cmd_sema);
-        
-    SignalSema(usb_buf_sema);
 
     return ret == USB_RC_OK;
 }
@@ -783,15 +788,13 @@ static int xboxusb_send_packet_raw(int pad, const u8 *data, int len)
         return 0;
 
     PollSema(ds34pad[pad].cmd_sema);
-    WaitSema(usb_buf_sema);
-    mips_memset(usb_buf, 0, sizeof(usb_buf));
-    mips_memcpy(usb_buf, data, len);
+    
+    mips_memset(ds34pad[pad].led_buf, 0, 64);
+    mips_memcpy(ds34pad[pad].led_buf, data, len);
 
-    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, len, usb_cmd_cb, (void *)pad);
+    ret = UsbInterruptTransfer(ds34pad[pad].outEndp, ds34pad[pad].led_buf, len, usb_cmd_cb, (void *)pad);
     if (ret == USB_RC_OK)
         TransferWait(ds34pad[pad].cmd_sema);
-        
-    SignalSema(usb_buf_sema);
 
     return ret == USB_RC_OK;
 }
@@ -818,58 +821,52 @@ static int LEDRumble(u8 *led, u8 lrum, u8 rrum, int pad)
     int ret = 0;
 
     PollSema(ds34pad[pad].cmd_sema);
-    WaitSema(usb_buf_sema);
 
-    mips_memset(usb_buf, 0, sizeof(usb_buf));
+    mips_memset(ds34pad[pad].led_buf, 0, 32);
 
     if (ds34pad[pad].type == DS3) {
-        mips_memcpy(usb_buf, output_01_report, sizeof(output_01_report));
+        mips_memcpy(ds34pad[pad].led_buf, output_01_report, sizeof(output_01_report));
 
-        usb_buf[1] = 0xFE; // rt
-        usb_buf[2] = rrum; // rp
-        usb_buf[3] = 0xFE; // lt
-        usb_buf[4] = lrum; // lp
+        ds34pad[pad].led_buf[1] = 0xFE; // rt
+        ds34pad[pad].led_buf[2] = rrum; // rp
+        ds34pad[pad].led_buf[3] = 0xFE; // lt
+        ds34pad[pad].led_buf[4] = lrum; // lp
 
-        usb_buf[9] = led[0] & 0x7F; // LED Conf
+        ds34pad[pad].led_buf[9] = led[0] & 0x7F; // LED Conf
 
         if (led[3]) // means charging, so blink
         {
-            usb_buf[13] = 0x32;
-            usb_buf[18] = 0x32;
-            usb_buf[23] = 0x32;
-            usb_buf[28] = 0x32;
+            ds34pad[pad].led_buf[13] = 0x32;
+            ds34pad[pad].led_buf[18] = 0x32;
+            ds34pad[pad].led_buf[23] = 0x32;
+            ds34pad[pad].led_buf[28] = 0x32;
         }
 
-        ret = UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_SET_REPORT_OUTPUT << 8) | 0x01, 0, sizeof(output_01_report), usb_buf, usb_cmd_cb, (void *)pad);
+        ret = UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_SET_REPORT_OUTPUT << 8) | 0x01, 0, sizeof(output_01_report), ds34pad[pad].led_buf, usb_cmd_cb, (void *)pad);
     } else if (ds34pad[pad].type == DS4) {
-        usb_buf[0] = 0x05;
-        usb_buf[1] = 0xFF;
+        ds34pad[pad].led_buf[0] = 0x05;
+        ds34pad[pad].led_buf[1] = 0xFF;
 
-        usb_buf[4] = rrum * 255; // ds4 has full control
-        usb_buf[5] = lrum;
+        ds34pad[pad].led_buf[4] = rrum * 255; // ds4 has full control
+        ds34pad[pad].led_buf[5] = lrum;
 
-        usb_buf[6] = led[0]; // r
-        usb_buf[7] = led[1]; // g
-        usb_buf[8] = led[2]; // b
+        ds34pad[pad].led_buf[6] = led[0]; // r
+        ds34pad[pad].led_buf[7] = led[1]; // g
+        ds34pad[pad].led_buf[8] = led[2]; // b
 
         if (led[3]) // means charging, so blink
         {
-            usb_buf[9] = 0x80;  // Time to flash bright (255 = 2.5 seconds)
-            usb_buf[10] = 0x80; // Time to flash dark (255 = 2.5 seconds)
+            ds34pad[pad].led_buf[9] = 0x80;  // Time to flash bright (255 = 2.5 seconds)
+            ds34pad[pad].led_buf[10] = 0x80; // Time to flash dark (255 = 2.5 seconds)
         }
 
-        ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_buf, 32, usb_cmd_cb, (void *)pad);
+        ret = UsbInterruptTransfer(ds34pad[pad].outEndp, ds34pad[pad].led_buf, 32, usb_cmd_cb, (void *)pad);
     }
 
     ds34pad[pad].oldled[0] = led[0];
     ds34pad[pad].oldled[1] = led[1];
     ds34pad[pad].oldled[2] = led[2];
     ds34pad[pad].oldled[3] = led[3];
-
-    if (ret == USB_RC_OK)
-        TransferWait(ds34pad[pad].cmd_sema);
-        
-    SignalSema(usb_buf_sema);
 
     return ret;
 }
@@ -916,6 +913,13 @@ int ds34usb_get_data(u8 *dst, int size, int port)
 
     WaitSema(ds34pad[port].sema);
 
+    if (ds34pad[port].type == XBOX_USB) {
+        mips_memcpy(dst, ds34pad[port].data, size);
+        ret = ds34pad[port].analog_btn & 1;
+        SignalSema(ds34pad[port].sema);
+        return ret;
+    }
+
     PollSema(ds34pad[port].sema);
 
     WaitSema(usb_buf_sema);
@@ -923,10 +927,7 @@ int ds34usb_get_data(u8 *dst, int size, int port)
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_buf, MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
-        if (ds34pad[port].type == XBOX_USB)
-            TransferWaitTimeout(ds34pad[port].sema, 5000);
-        else
-            TransferWait(ds34pad[port].sema);
+        TransferWait(ds34pad[port].sema);
 
         if (!usb_resulCode)
             readReport(usb_buf, port);
