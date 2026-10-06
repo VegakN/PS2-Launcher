@@ -906,7 +906,10 @@ int ds34usb_get_data(u8 *dst, int size, int port)
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_in_buf[port], MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
-        TransferWait(ds34pad[port].sema);
+        if (ds34pad[port].type == XBOX_USB)
+            TransferWaitTimeout(ds34pad[port].sema, 5000);
+        else
+            TransferWait(ds34pad[port].sema);
 
         if (!usb_resulCode[port])
             readReport(usb_in_buf[port], port);
