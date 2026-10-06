@@ -1417,15 +1417,26 @@ static const char *ps5AppsBaseName(const char *path)
 static void ps5AppsJoinPath(char *dst, int dstSize, const char *dir, const char *name)
 {
     int len;
+    char separator;
 
     if (dstSize <= 0)
         return;
 
     len = strlen(dir);
+    separator = strncmp(dir, "smb", 3) == 0 ? '\\' : '/';
     if (len > 0 && (dir[len - 1] == '/' || dir[len - 1] == '\\' || (dir[len - 1] == ':' && strncmp(dir, "pfs", 3) == 0)))
         snprintf(dst, dstSize, "%s%s", dir, name);
     else
-        snprintf(dst, dstSize, "%s/%s", dir, name);
+        snprintf(dst, dstSize, "%s%c%s", dir, separator, name);
+}
+
+static int ps5AppsIsDirectory(const char *path)
+{
+    DIR *dir = opendir(path);
+    if (dir == NULL)
+        return 0;
+    closedir(dir);
+    return 1;
 }
 
 static int ps5AppsFindOrAddGroup(const char *title)
@@ -1481,7 +1492,7 @@ static void ps5AppsScanDirectory(const char *dirPath, int group, int depth)
 
         ps5AppsJoinPath(path, sizeof(path), dirPath, entry->d_name);
 
-        if (entry->d_type == DT_DIR)
+        if (entry->d_type == DT_DIR || (entry->d_type == DT_UNKNOWN && ps5AppsIsDirectory(path)))
             ps5AppsScanDirectory(path, group, depth + 1);
         else if (ps5AppsNameEndsWithElf(entry->d_name))
             ps5AppsAddItem(group, path);
@@ -1532,6 +1543,7 @@ static const char *ps5AppsBdmDeviceLabel(item_list_t *support)
 static void ps5AppsScanTask(void)
 {
     int i;
+    item_list_t *eth;
 
     gPS5AppsLoading = 1;
     gPS5AppsScanned = 1;
@@ -1543,6 +1555,28 @@ static void ps5AppsScanTask(void)
 
     ps5AppsScanRoot("Memory Card 1", "mc0:/");
     ps5AppsScanRoot("Memory Card 2", "mc1:/");
+
+    /* The network games share can also contain APPS, for example
+     * smb0:abu\\PS2\\APPS for a host folder D:\\roms\\abu\\PS2\\APPS. */
+    eth = ethGetObject(0);
+    if (eth != NULL && eth->enabled && eth->itemGetPrefix != NULL && gNetworkStartup == 0) {
+        char root[PS5_APPS_PATH_MAX];
+        const char *prefix = eth->itemGetPrefix(eth);
+        size_t prefixLen;
+
+        if (prefix != NULL && prefix[0] != '\0') {
+            prefixLen = strlen(prefix);
+            while (prefixLen > 0 && (prefix[prefixLen - 1] == '/' || prefix[prefixLen - 1] == '\\'))
+                prefixLen--;
+            if (strncmp(prefix, "smb", 3) == 0 && prefixLen > 0 && prefix[prefixLen - 1] == ':')
+                snprintf(root, sizeof(root), "%.*sAPPS", (int)prefixLen, prefix);
+            else if (strncmp(prefix, "smb", 3) == 0)
+                snprintf(root, sizeof(root), "%.*s\\APPS", (int)prefixLen, prefix);
+            else
+                snprintf(root, sizeof(root), "%.*s/APPS", (int)prefixLen, prefix);
+            ps5AppsScanRoot("Network", root);
+        }
+    }
 
     for (i = 0; i < MAX_BDM_DEVICES; i++) {
         item_list_t *support = bdmGetDeviceObject(i);
@@ -2045,6 +2079,12 @@ static void ps5UpdateSmbDialog(void)
         gPS5SmbRetryFrame = shouldRetry ? guiFrameId : 0;
         return;
     }
+
+    /* The first Apps scan may happen before SMB finishes connecting. Retry it
+     * after the network game list is ready so APPS on that share are included. */
+    gPS5AppsScanned = 0;
+    if (gPS5ActiveTab == 2)
+        ps5QueueAppsScan(1);
 
     gPS5SmbDialogState = 0;
     gPS5SmbPromptState = 1;
@@ -3462,6 +3502,10 @@ void menuHandleInputGameMenu()
         int menuID;
         int sourceId = selected_item->item->current != NULL ? selected_item->item->current->item.id : -1;
         item_list_t *sourceSupport = selected_item->item->userdata;
+
+        /* Keep the raw Xbox/GameSir navigation bridge alive after entering
+         * the game-options screen; the main-menu handler normally polls it. */
+        ps5PollXboxNavigation();
 
         if (!ps5GameOptionsSourceIsAvailable()) {
             extern int gPS5ActiveTab;
