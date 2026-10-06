@@ -1583,6 +1583,7 @@ static void ps5CompleteAsyncTextureLoad(void)
 
 static int ps5QueueTextureLoad(net_req_t *entry, int isLogo)
 {
+    extern int gNetworkStartup;
     int idx;
     int *state;
     const char *path;
@@ -1597,6 +1598,9 @@ static int ps5QueueTextureLoad(net_req_t *entry, int isLogo)
     state = isLogo ? &entry->hasLogoTex : &entry->hasTex;
     path = isLogo ? entry->logoPath : entry->coverPath;
     if (*state != 0 || path == NULL || path[0] == '\0')
+        return 0;
+    // An SMB open while the network stack is starting can stall the first menu frame.
+    if (strncmp(path, "smb", 3) == 0 && gNetworkStartup != 0)
         return 0;
 
     strncpy(gPS5AsyncTexPath, path, sizeof(gPS5AsyncTexPath) - 1);
