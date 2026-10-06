@@ -489,15 +489,9 @@ static void xboxusb_poll_cb(int resultCode, int bytes, void *arg)
     }
     SignalSema(ds34pad[pad].sema);
 
-    if (resultCode == USB_RC_OK) {
-        // Queue the next transfer immediately to drain the controller's queue and prevent latency
-        int ret = UsbInterruptTransfer(ds34pad[pad].interruptEndp, xbox_poll_buf, MAX_BUFFER_SIZE, xboxusb_poll_cb, (void *)pad);
-        if (ret != USB_RC_OK)
-            xbox_poll_pending = 0;
-    } else {
-        xbox_poll_result = 1;
-        xbox_poll_pending = 0;
-    }
+    xbox_poll_result = 1;
+    xbox_poll_pending = 0;
+    iWakeupThread(xbox_poll_tid);
 }
 
 static int xboxusb_axis_to_ds2(u8 low, u8 high)
@@ -534,7 +528,11 @@ static void xboxusb_poll_thread(void *arg)
             }
         }
 
-        DelayThread(16000);
+        if (xbox_poll_pending) {
+            SleepThread();
+        } else {
+            DelayThread(4000);
+        }
     }
 }
 
@@ -1048,6 +1046,17 @@ int ds34usb_init(u8 pads, u8 options)
         DPRINTF("DS34USB: Error registering USB devices\n");
         return 0;
     }
+
+    iop_thread_t thread;
+    thread.attr = TH_C;
+    thread.thread = xboxusb_poll_thread;
+    thread.priority = 40;
+    thread.stacksize = 0x800;
+    thread.option = 0;
+
+    xbox_poll_tid = CreateThread(&thread);
+    if (xbox_poll_tid >= 0)
+        StartThread(xbox_poll_tid, NULL);
 
     return 1;
 }
