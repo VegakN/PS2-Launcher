@@ -350,16 +350,16 @@ static void usb_config_set(int result, int count, void *arg)
     SignalSema(ds34pad[pad].sema);
 }
 
+static u8 ds3_init_buf[4] __attribute((aligned(4))) = {0};
+
 static void DS3USB_init(int pad)
 {
-    WaitSema(usb_buf_sema);
-    usb_buf[0] = 0x42;
-    usb_buf[1] = 0x0c;
-    usb_buf[2] = 0x00;
-    usb_buf[3] = 0x00;
+    ds3_init_buf[0] = 0x42;
+    ds3_init_buf[1] = 0x0c;
+    ds3_init_buf[2] = 0x00;
+    ds3_init_buf[3] = 0x00;
 
-    UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_GET_REPORT_FEATURE << 8) | 0xF4, 0, 4, usb_buf, NULL, NULL);
-    SignalSema(usb_buf_sema);
+    UsbControlTransfer(ds34pad[pad].controlEndp, REQ_USB_OUT, USB_REQ_SET_REPORT, (HID_USB_GET_REPORT_FEATURE << 8) | 0xF4, 0, 4, ds3_init_buf, NULL, NULL);
 }
 
 #define MAX_DELAY 10
