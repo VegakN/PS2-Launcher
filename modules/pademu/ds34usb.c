@@ -93,7 +93,6 @@ static void xboxusb_poll_thread(void *arg);
 static void xboxusb_poll_cb(int resultCode, int bytes, void *arg);
 static int xboxusb_axis_to_ds2_centered(int pad, int axis, u8 low, u8 high, int invert);
 static void xboxusb_update_axis_center(int pad, const u8 *data);
-static void xboxusb_apply_buttons(const u8 *in, struct ds2report *out);
 static void xboxusb_translate_input(int pad, const u8 *in, struct ds2report *out);
 static int xboxusb_send_packet(int pad, const u8 *data, int len);
 static int xboxusb_send_packet_raw(int pad, const u8 *data, int len);
