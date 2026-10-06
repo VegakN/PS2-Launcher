@@ -1414,6 +1414,7 @@ static int gNetCacheCapacity = 0;
 static unsigned int gPS5TextureFrame = 0;
 static int gPS5TextureLoadsThisFrame = 0;
 static unsigned int gPS5CacheGeneration = 1;
+static volatile int gPS5CoverCacheClearPending = 0;
 int gPS5CarouselNavInterrupt = 0;
 static item_list_t *gPS5ArtworkResolveList = NULL;
 static int gPS5ArtworkResolveSourceId = -1;
@@ -1886,6 +1887,30 @@ int debugOpenProbe(const char *path)
     return open(path, O_RDONLY);
 }
 
+static void ps5BuildGameArtworkPath(char *path, size_t pathSize, const char *devicePrefix,
+                                    const char *folder, const char *startup, const char *suffix)
+{
+    char prefix[128];
+    size_t len;
+    int isSmb;
+
+    if (devicePrefix == NULL || devicePrefix[0] == '\0')
+        devicePrefix = "mass0:";
+    strncpy(prefix, devicePrefix, sizeof(prefix) - 1);
+    prefix[sizeof(prefix) - 1] = '\0';
+    len = strlen(prefix);
+    while (len > 0 && (prefix[len - 1] == '/' || prefix[len - 1] == '\\'))
+        prefix[--len] = '\0';
+
+    isSmb = strncmp(prefix, "smb", 3) == 0;
+    if (isSmb && len > 0 && prefix[len - 1] == ':')
+        snprintf(path, pathSize, "%s%s\\%s_%s.png", prefix, folder, startup, suffix);
+    else if (isSmb)
+        snprintf(path, pathSize, "%s\\%s\\%s_%s.png", prefix, folder, startup, suffix);
+    else
+        snprintf(path, pathSize, "%s/%s/%s_%s.png", prefix, folder, startup, suffix);
+}
+
 static void triggerNetFetch(const char *title, const char *startup, const char *devicePrefix, int allowDeviceProbe) {
     extern int gPS5ShowGamesLogo;
     char matchedPath[256];
@@ -1926,37 +1951,15 @@ static void triggerNetFetch(const char *title, const char *startup, const char *
     gNetCache[idx].hasColor = 0;
 
     matchedPath[0] = '\0';
-    if (allowDeviceProbe && startup && startup[0] != '\0') {
-        char prefix[128];
-        if (devicePrefix && devicePrefix[0] != '\0') {
-            strncpy(prefix, devicePrefix, sizeof(prefix) - 1);
-            prefix[sizeof(prefix) - 1] = '\0';
-            int len = strlen(prefix);
-            if (len > 0 && prefix[len - 1] == '/')
-                prefix[len - 1] = '\0';
-        } else {
-            strcpy(prefix, "mass0:");
-        }
-        snprintf(matchedPath, sizeof(matchedPath), "%s/ART/%s_COV.png", prefix, startup);
-    }
+    if (allowDeviceProbe && startup && startup[0] != '\0')
+        ps5BuildGameArtworkPath(matchedPath, sizeof(matchedPath), devicePrefix, "ART", startup, "COV");
     if (matchedPath[0] == '\0') {
         findBuiltInCoverForGame(title, matchedPath, sizeof(matchedPath));
     }
 
     char logoPath[256] = {0};
-    if (allowDeviceProbe && startup && startup[0] != '\0') {
-        char prefix[128];
-        if (devicePrefix && devicePrefix[0] != '\0') {
-            strncpy(prefix, devicePrefix, sizeof(prefix) - 1);
-            prefix[sizeof(prefix) - 1] = '\0';
-            int len = strlen(prefix);
-            if (len > 0 && prefix[len - 1] == '/')
-                prefix[len - 1] = '\0';
-        } else {
-            strcpy(prefix, "mass0:");
-        }
-        snprintf(logoPath, sizeof(logoPath), "%s/LOGO/%s_LOGO.png", prefix, startup);
-    }
+    if (allowDeviceProbe && startup && startup[0] != '\0')
+        ps5BuildGameArtworkPath(logoPath, sizeof(logoPath), devicePrefix, "LOGO", startup, "LOGO");
     strncpy(gNetCache[idx].logoPath, logoPath, sizeof(gNetCache[idx].logoPath) - 1);
     gNetCache[idx].logoPath[sizeof(gNetCache[idx].logoPath) - 1] = '\0';
     if (gNetCache[idx].logoPath[0] == '\0') {
@@ -2054,7 +2057,7 @@ static net_req_t *preparePS5CarouselCardMedia(struct menu_list *menu, submenu_li
     if (cacheEntry != NULL) {
         if (cacheEntry->state == 2 && (cacheEntry->coverPath[0] == '\0' || (gPS5ShowGamesLogo && cacheEntry->logoPath[0] == '\0')))
             ps5QueueArtworkStartupResolve(list, sourceId, startup);
-        if (cacheEntry->state == 2 && cacheEntry->coverPath[0] != '\0') {
+        if (gPS5ShowCoverImages && cacheEntry->state == 2 && cacheEntry->coverPath[0] != '\0') {
             cacheEntry->lastCoverFrame = gPS5TextureFrame;
             if (cacheEntry->hasTex == 0 && !isUnplugged && gPS5CarouselNavInterrupt <= 0 && gPS5TextureLoadsThisFrame < PS5_MAX_TEXTURE_LOADS_PER_FRAME) {
                 gPS5TextureLoadsThisFrame++;
@@ -2705,7 +2708,7 @@ static void clearNetCache(void)
 
 void ps5ClearCoverCache(void)
 {
-    clearNetCache();
+    gPS5CoverCacheClearPending = 1;
 }
 
 void ps5RetryMissingCoverCache(void)
@@ -2829,6 +2832,10 @@ static void drawPS5Launcher(struct menu_list *menu, struct submenu_list *item, s
     gPS5TextureLoadsThisFrame = 0;
     ps5CompleteAsyncTextureLoad();
     ps5RecoverTimedOutTextureLoad();
+    if (gPS5CoverCacheClearPending) {
+        gPS5CoverCacheClearPending = 0;
+        clearNetCache();
+    }
     if (gPS5ArtworkResolveDirty) {
         gPS5ArtworkResolveDirty = 0;
         clearNetCache();
@@ -2964,10 +2971,10 @@ static void drawPS5Launcher(struct menu_list *menu, struct submenu_list *item, s
                 logoAlpha = 0.0f;
             }
 
-            if (gPS5ShowCoverImages) {
+            if (gPS5ShowGamesLogo) {
                 net_req_t *selCache = findNetCacheEntryForGame(selTitle, selectedStartup, selectedPrefix);
 
-                if (!gPS5ShowCoverImages || !selectedVisibleInAlpha) {
+                if (!selectedVisibleInAlpha) {
                     logoAlpha = 0.0f;
                 } else if (selCache && selCache->logoPath[0] != '\0') {
                     selCache->lastLogoFrame = gPS5TextureFrame;
@@ -3110,10 +3117,10 @@ static void drawPS5Launcher(struct menu_list *menu, struct submenu_list *item, s
 
                     getGameColors(gameTitleText, &cR, &cG, &cB, &bR, &bG, &bB);
 
-                    if (cacheEntry && cacheEntry->state == 2 && cacheEntry->coverPath[0] != '\0')
+                    if (gPS5ShowCoverImages && cacheEntry && cacheEntry->state == 2 && cacheEntry->coverPath[0] != '\0')
                         hasCover = (cacheEntry->hasTex == 1);
 
-                    if (gPS5ShowGamesLogo && hasCover && cacheEntry) {
+                    if (hasCover) {
                         rmDrawRoundedRectWide(x1, y1, width, height, 12, GS_SETREG_RGBA(0x00, 0x00, 0x00, 0x80));
                         rmDrawRoundedSquareThumbnailWide(&cacheEntry->coverTex, x1, y1, width, height, 12);
                     } else {
