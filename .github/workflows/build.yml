@@ -59,8 +59,12 @@ jobs:
         name: build-log
         path: build_log.txt
 
-    - name: Check packed Memory Card ELF
-      run: test -s PS2L.ELF
+    - name: Prepare Memory Card ELF
+      run: |
+        # Use the direct ELF for memory card boot. The packed ELF is kept only
+        # as a build intermediate until its boot compatibility is verified.
+        cp opl.elf PS2L.ELF
+        python3 -c 'import struct; p=open("PS2L.ELF","rb").read(52); assert p[:4] == b"\x7fELF" and p[4] == 1 and p[5] == 1 and struct.unpack_from("<I", p, 24)[0] != 0'
 
     - name: Upload compiled Memory Card ELF
       uses: actions/upload-artifact@v4

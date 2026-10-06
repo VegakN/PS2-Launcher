@@ -270,7 +270,7 @@ void sysReset(int modload_mask)
     sysLoadModuleBuffer(&audsrv_irx, size_audsrv_irx, 0, NULL);
 
 #ifdef PADEMU
-    int ds3pads = 1; // only one pad enabled
+    int ds3pads = 3; // accept two USB or Bluetooth controllers in the launcher
 
     ds34usb_deinit();
     ds34bt_deinit();

@@ -10,6 +10,7 @@
 #define GUITAR_GH 2
 #define GUITAR_RB 3
 #define XBOX_USB  4
+#define DS5       5
 
 #define MODEL_GUITAR 1
 #define MODEL_PS2    3

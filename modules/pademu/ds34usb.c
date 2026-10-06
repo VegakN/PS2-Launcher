@@ -119,7 +119,7 @@ static int is_gamepad_device(int devId, UsbDeviceDescriptor *device)
     if (device->idVendor == SONY_VID && (device->idProduct == GUITAR_HERO_PS3_PID || device->idProduct == ROCK_BAND_PS3_PID))
         return 1;
 
-    if (device->idVendor == DS34_VID && (device->idProduct == DS3_PID || device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM))
+    if (device->idVendor == DS34_VID && (device->idProduct == DS3_PID || device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM || device->idProduct == DS5_PID || device->idProduct == DS5_EDGE_PID))
         return 1;
 
     if (is_xbox_vendor(device->idVendor, device->idProduct))
@@ -206,6 +206,8 @@ int usb_connect(int devId)
         ds34pad[pad].type = GUITAR_RB;
     } else if (device->idVendor == DS34_VID && (device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM)) {
         ds34pad[pad].type = DS4;
+    } else if (device->idVendor == DS34_VID && (device->idProduct == DS5_PID || device->idProduct == DS5_EDGE_PID)) {
+        ds34pad[pad].type = DS5;
     } else {
         ds34pad[pad].type = XBOX_USB;
         ds34pad[pad].analog_btn = 1;
@@ -342,7 +344,7 @@ static void usb_config_set(int result, int count, void *arg)
 
     // Xbox initialization can wait for USB output. The USBD callback must not wait.
 
-    if (ds34pad[pad].type != XBOX_USB)
+    if (ds34pad[pad].type == DS3 || ds34pad[pad].type == DS4)
         LEDRumble(led, 0, 0, pad);
 
     ds34pad[pad].status |= DS34USB_STATE_RUNNING;
@@ -378,6 +380,13 @@ static void readReport(u8 *data, int pad_idx)
             xboxusb_update_axis_center(pad_idx, data);
         xboxusb_translate_input(pad_idx, data, &pad->ds2);
         padMacroPerform(&pad->ds2, 0);
+        return;
+    }
+    if (pad->type == DS5) {
+        if (data[0] == 0x01) {
+            translate_pad_ds5_usb(data, &pad->ds2);
+            padMacroPerform(&pad->ds2, data[10] & 0x01);
+        }
         return;
     }
 
@@ -865,6 +874,13 @@ static int LEDRumble(u8 *led, u8 lrum, u8 rrum, int pad)
         }
 
         ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_out_buf[pad], 32, usb_cmd_cb, (void *)pad);
+    } else if (ds34pad[pad].type == DS5 && ds34pad[pad].outEndp >= 0) {
+        // DualSense USB output report 0x02: compatible motor control.
+        usb_out_buf[pad][0] = 0x02;
+        usb_out_buf[pad][1] = 0x01;
+        usb_out_buf[pad][3] = rrum;
+        usb_out_buf[pad][4] = lrum;
+        ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_out_buf[pad], 63, usb_cmd_cb, (void *)pad);
     }
 
     ds34pad[pad].oldled[0] = led[0];
@@ -904,6 +920,10 @@ void ds34usb_set_rumble(u8 lrum, u8 rrum, int port)
 {
     WaitSema(ds34pad[port].sema);
 
+    if (ds34pad[port].type == DS5 && ds34pad[port].lrum == lrum && ds34pad[port].rrum == rrum) {
+        SignalSema(ds34pad[port].sema);
+        return;
+    }
     ds34pad[port].update_rum = 1;
     ds34pad[port].lrum = lrum;
     ds34pad[port].rrum = rrum;
@@ -914,6 +934,7 @@ void ds34usb_set_rumble(u8 lrum, u8 rrum, int port)
 int ds34usb_get_data(u8 *dst, int size, int port)
 {
     int ret = 0;
+    int rumbleResult;
 
     WaitSema(ds34pad[port].sema);
 
@@ -945,12 +966,13 @@ int ds34usb_get_data(u8 *dst, int size, int port)
     ret = ds34pad[port].analog_btn & 1;
 
     if (ds34pad[port].update_rum) {
-        if (ds34pad[port].type != XBOX_USB) {
-            ret = LEDRumble(ds34pad[port].oldled, ds34pad[port].lrum, ds34pad[port].rrum, port);
-            if (ret == USB_RC_OK)
+        if (ds34pad[port].type == DS3 || ds34pad[port].type == DS4 ||
+            (ds34pad[port].type == DS5 && ds34pad[port].outEndp >= 0)) {
+            rumbleResult = LEDRumble(ds34pad[port].oldled, ds34pad[port].lrum, ds34pad[port].rrum, port);
+            if (rumbleResult == USB_RC_OK)
                 TransferWait(ds34pad[port].cmd_sema);
             else
-                DPRINTF("DS34USB: LEDRumble usb transfer error %d\n", ret);
+                DPRINTF("DS34USB: LEDRumble usb transfer error %d\n", rumbleResult);
         }
         ds34pad[port].update_rum = 0;
     }

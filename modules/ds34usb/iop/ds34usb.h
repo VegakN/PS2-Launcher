@@ -10,6 +10,7 @@
 #define GUITAR_GH 2
 #define GUITAR_RB 3
 #define XBOX_USB 4
+#define DS5 5
 
 #define MAX_BUFFER_SIZE 64 // Size of general purpose data buffer
 

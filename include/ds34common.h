@@ -11,6 +11,8 @@
 #define DS3_PID             0x0268 // PS3 Controller
 #define DS4_PID             0x05C4 // PS4 Controller
 #define DS4_PID_SLIM        0x09CC // PS4 Slim Controller
+#define DS5_PID             0x0CE6 // DualSense
+#define DS5_EDGE_PID        0x0DF2 // DualSense Edge
 #define GUITAR_HERO_PS3_PID 0x0100 // PS3 Guitar Hero Guitar
 #define ROCK_BAND_PS3_PID   0x0200 // PS3 Rock Band Guitar
 
@@ -105,6 +107,48 @@ struct ds2report
     uint8_t PressureR2;
 
 } __attribute__((packed));
+
+/* DualSense USB input report 0x01, translated to the native PS2 pad layout. */
+static inline void translate_pad_ds5_usb(const uint8_t *in, struct ds2report *out)
+{
+    uint16_t buttons = 0;
+    uint8_t hat = in[8] & 0x0F;
+
+    if (hat == 0 || hat == 1 || hat == 7) buttons |= DS2ButtonUp;
+    if (hat == 1 || hat == 2 || hat == 3) buttons |= DS2ButtonRight;
+    if (hat == 3 || hat == 4 || hat == 5) buttons |= DS2ButtonDown;
+    if (hat == 5 || hat == 6 || hat == 7) buttons |= DS2ButtonLeft;
+    if (in[8] & 0x10) buttons |= DS2ButtonSquare;
+    if (in[8] & 0x20) buttons |= DS2ButtonCross;
+    if (in[8] & 0x40) buttons |= DS2ButtonCircle;
+    if (in[8] & 0x80) buttons |= DS2ButtonTriangle;
+    if (in[9] & 0x01) buttons |= DS2ButtonL1;
+    if (in[9] & 0x02) buttons |= DS2ButtonR1;
+    if (in[9] & 0x04) buttons |= DS2ButtonL2;
+    if (in[9] & 0x08) buttons |= DS2ButtonR2;
+    if ((in[9] & 0x10) || (in[10] & 0x02)) buttons |= DS2ButtonSelect;
+    if (in[9] & 0x20) buttons |= DS2ButtonStart;
+    if (in[9] & 0x40) buttons |= DS2ButtonL3;
+    if (in[9] & 0x80) buttons |= DS2ButtonR3;
+
+    out->nButtonState = (uint16_t)~buttons;
+    out->RightStickX = in[3];
+    out->RightStickY = in[4];
+    out->LeftStickX = in[1];
+    out->LeftStickY = in[2];
+    out->PressureRight = (buttons & DS2ButtonRight) ? 0xFF : 0;
+    out->PressureLeft = (buttons & DS2ButtonLeft) ? 0xFF : 0;
+    out->PressureUp = (buttons & DS2ButtonUp) ? 0xFF : 0;
+    out->PressureDown = (buttons & DS2ButtonDown) ? 0xFF : 0;
+    out->PressureTriangle = (buttons & DS2ButtonTriangle) ? 0xFF : 0;
+    out->PressureCircle = (buttons & DS2ButtonCircle) ? 0xFF : 0;
+    out->PressureCross = (buttons & DS2ButtonCross) ? 0xFF : 0;
+    out->PressureSquare = (buttons & DS2ButtonSquare) ? 0xFF : 0;
+    out->PressureL1 = (buttons & DS2ButtonL1) ? 0xFF : 0;
+    out->PressureR1 = (buttons & DS2ButtonR1) ? 0xFF : 0;
+    out->PressureL2 = in[5];
+    out->PressureR2 = in[6];
+}
 
 struct ds3report
 {

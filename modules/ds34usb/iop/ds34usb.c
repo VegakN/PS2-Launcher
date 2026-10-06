@@ -50,7 +50,7 @@ static int is_gamepad_device(int devId, UsbDeviceDescriptor *device)
     if (device->idVendor == SONY_VID && (device->idProduct == GUITAR_HERO_PS3_PID || device->idProduct == ROCK_BAND_PS3_PID))
         return 1;
 
-    if (device->idVendor == DS34_VID && (device->idProduct == DS3_PID || device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM))
+    if (device->idVendor == DS34_VID && (device->idProduct == DS3_PID || device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM || device->idProduct == DS5_PID || device->idProduct == DS5_EDGE_PID))
         return 1;
 
     if (is_xbox_vendor(device->idVendor, device->idProduct))
@@ -191,6 +191,8 @@ int usb_connect(int devId)
         ds34pad[pad].type = DS3;
     } else if (device->idVendor == DS34_VID && (device->idProduct == DS4_PID || device->idProduct == DS4_PID_SLIM)) {
         ds34pad[pad].type = DS4;
+    } else if (device->idVendor == DS34_VID && (device->idProduct == DS5_PID || device->idProduct == DS5_EDGE_PID)) {
+        ds34pad[pad].type = DS5;
     } else {
         ds34pad[pad].type = XBOX_USB;
         ds34pad[pad].analog_btn = 1;
@@ -366,7 +368,7 @@ static void usb_config_set(int result, int count, void *arg)
         led[3] = 0;
     }
 
-    if (ds34pad[pad].type != XBOX_USB) {
+    if (ds34pad[pad].type == DS3 || ds34pad[pad].type == DS4) {
         LEDRumble(led, 0, 0, pad);
         DelayThread(20000);
     }
@@ -582,6 +584,11 @@ static void readReport(u8 *data, int pad)
 {
     if (ds34pad[pad].type == XBOX_USB) {
         xboxusb_translate_report(data, pad);
+        return;
+    }
+    if (ds34pad[pad].type == DS5) {
+        if (data[0] == 0x01)
+            translate_pad_ds5_usb(data, &ds34pad[pad].ds2);
         return;
     }
 

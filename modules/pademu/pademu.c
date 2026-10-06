@@ -22,6 +22,9 @@
 #include "ds34bt.h"
 #endif
 
+static u8 pad_enable = 0;
+static u8 game_port_enable = 0x0F;
+
 #if defined(USB) || defined(BT)
 
 typedef struct {
@@ -71,17 +74,6 @@ static pad_mapping_t get_pad_mapping(int game_port)
         int assigned = 1;
 
         for (i = 0; i < MAX_PORTS; i++) {
-            if (bt_running[i]) {
-                if (assigned == game_port) {
-                    map.driver_type = 2; // BT
-                    map.driver_port = i;
-                    return map;
-                }
-                assigned++;
-            }
-        }
-
-        for (i = 0; i < MAX_PORTS; i++) {
             if (i != gamesir_usb_port && usb_running[i]) {
                 if (assigned == game_port) {
                     map.driver_type = 1; // USB
@@ -91,8 +83,20 @@ static pad_mapping_t get_pad_mapping(int game_port)
                 assigned++;
             }
         }
+
+        for (i = 0; i < MAX_PORTS; i++) {
+            if (bt_running[i]) {
+                if (assigned == game_port) {
+                    map.driver_type = 2; // BT
+                    map.driver_port = i;
+                    return map;
+                }
+                assigned++;
+            }
+        }
     } else {
-        int assigned = 0;
+        // If the physical first port is in use, the first USB pad belongs to P2.
+        int assigned = (game_port_enable & 0x01) ? 0 : 1;
         for (i = 0; i < MAX_PORTS; i++) {
             if (usb_running[i]) {
                 if (assigned == game_port) {
@@ -259,7 +263,6 @@ Sio2McProc pSio2man25, pSio2man51;                 /* Pointers to SIO2MAN routin
 pad_status_t pad[MAX_PORTS];
 
 static u8 pad_inited = 0;
-static u8 pad_enable = 0;
 static u8 pad_options = 0;
 
 static u8 mtap_enabled = 0;
@@ -293,10 +296,13 @@ int _start(int argc, char *argv[])
     if (argc > 1) {
         mips_memcpy(&raw_settings, argv[1], 4);
         u8 ports_from_settings = raw_settings & 0xFF;
-        if (ports_from_settings != 0)
+        if (ports_from_settings != 0) {
+            game_port_enable = ports_from_settings;
             pad_enable = ports_from_settings | 0x03;
-        else
+        } else {
+            game_port_enable = 0x0F;
             pad_enable = 0x0F;
+        }
 
         u8 vib_from_settings = (raw_settings >> 8) & 0xFF;
         if (vib_from_settings != 0)
@@ -329,7 +335,7 @@ int _start(int argc, char *argv[])
             return MODULE_NO_RESIDENT_END;
     }
 
-    pademu_setup(pad_enable, pad_vibration);
+    pademu_setup(game_port_enable, pad_vibration);
 
     return MODULE_RESIDENT_END;
 }
@@ -410,12 +416,25 @@ void hookSio2man51(sio2_transfer_data_t *sd)
 void pademu_hookSio2man(sio2_transfer_data_t *td, Sio2McProc sio2proc)
 {
     register u32 ctrl, port1, port2;
+    u8 enabled0 = pad[0].enabled;
+    u8 enabled1 = pad[1].enabled;
 
     ctrl = td->regdata[0];
     port1 = td->regdata[0] & 0x03;
     port2 = td->regdata[1] & 0x03;
 
     if ((ctrl & 0xF0) == 0x40) {
+        if (td->in[0] == 0x01 && !mtap_inited) {
+            if (!pad_inited)
+                pad_inited = PAD_INIT(pad_enable, pad_options);
+            if (pad_inited) {
+                pad[0].enabled &= (get_pad_mapping(0).driver_type != 0);
+                pad[1].enabled &= (get_pad_mapping(1).driver_type != 0);
+            } else {
+                pad[0].enabled = 0;
+                pad[1].enabled = 0;
+            }
+        }
         if (td->port_ctrl2[port1] == 0x00030064 && td->in[0] == 0x21 && mtap_enabled) {
             sio2proc = pademu_mtap;
         } else if (td->in[0] == 0x01) {
@@ -442,7 +461,7 @@ void pademu_hookSio2man(sio2_transfer_data_t *td, Sio2McProc sio2proc)
                                 }
                             }
                             if (ctrl + 3 == td->in_size) {
-                                return;
+                                goto finish;
                             }
                         }
                         td->in[ctrl] = 0x00;
@@ -466,6 +485,9 @@ void pademu_hookSio2man(sio2_transfer_data_t *td, Sio2McProc sio2proc)
     }
 
     sio2proc(td);
+finish:
+    pad[0].enabled = enabled0;
+    pad[1].enabled = enabled1;
 }
 
 void pademu_setup(u8 ports, u8 vib)

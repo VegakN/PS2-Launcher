@@ -12,6 +12,9 @@
 #include "include/ps2cnf.h"
 #include "include/gui.h"
 #include "include/pad.h"
+#ifdef PADEMU
+#include <libds34usb.h>
+#endif
 
 #define NEWLIB_PORT_AWARE
 #include <fileXio_rpc.h> // fileXioMount("iso:", ***), fileXioUmount("iso:")
@@ -586,17 +589,27 @@ static void sbApplyPadEmuPhysicalPriority(void)
 {
     int enabledPorts;
     int vibrationPorts;
+    int gamesirConnected;
 
     if (!gEnablePadEmu)
         return;
 
-    if (gPadEmuSettings & 0xFF)
-        return;
-
     enabledPorts = (gPadEmuSettings >> 8) & 0x0F;
     vibrationPorts = (gPadEmuSettings >> 16) & 0x0F;
+    gamesirConnected = ds34usb_get_type(0) == 4 || ds34usb_get_type(1) == 4;
 
-    if (padIsPhysicalDualShockConnected(0)) {
+    if (gamesirConnected) {
+        // Both PADEMU variants include USB. Keep the GameSir on port 1.
+        gPadEmuSettings &= ~0xFF;
+        enabledPorts |= 0x01;
+        vibrationPorts |= 0x01;
+        if (!padIsPhysicalDualShockConnected(1)) {
+            enabledPorts |= 0x02;
+            vibrationPorts |= 0x02;
+        }
+    }
+
+    if (!gamesirConnected && padIsPhysicalDualShockConnected(0)) {
         if ((enabledPorts & 0x01) && !padIsPhysicalDualShockConnected(1)) {
             enabledPorts = (enabledPorts & ~0x01) | 0x02;
             vibrationPorts = (vibrationPorts & ~0x01) | 0x02;

@@ -108,10 +108,16 @@ static void mergeControllerStates(void)
 {
     int i;
 
-    for (i = 0; i < PAD_CONTROLLER_COUNT; i++) {
-        if (controller_state[i].connected)
-            paddata |= controller_state[i].buttons;
+    // Menu input comes from player 1. A lone player 2 can still navigate.
+    if (controller_state[0].connected) {
+        paddata = controller_state[0].buttons;
+        return;
     }
+    for (i = 1; i < PAD_CONTROLLER_COUNT; i++)
+        if (controller_state[i].connected) {
+            paddata = controller_state[i].buttons;
+            return;
+        }
 }
 
 /*
@@ -314,11 +320,8 @@ static int readPad(struct pad_data_t *pad, int player)
     int target_bt_port = -1;
     int target_usb_port = -1;
 
-    int s0 = ds34usb_get_status(0);
-    int s1 = ds34usb_get_status(1);
-
-    int u0_type = (s0 & DS34USB_STATE_RUNNING) ? (s0 >> 8) : -1;
-    int u1_type = (s1 & DS34USB_STATE_RUNNING) ? (s1 >> 8) : -1;
+    int u0_type = ds34usb_get_type(0);
+    int u1_type = ds34usb_get_type(1);
 
     int b0_active = (ds34bt_get_status(0) & DS34BT_STATE_RUNNING);
     int b1_active = (ds34bt_get_status(1) & DS34BT_STATE_RUNNING);
@@ -328,25 +331,30 @@ static int readPad(struct pad_data_t *pad, int player)
     else if (u1_type == 4) gamesir_usb_port = 1;
 
     if (gamesir_usb_port >= 0) {
+        // The GameSir owns player 1 even with a pad in the physical first port.
+        if (player == 0) {
+            newpdata = 0;
+            padsRead = 0;
+        }
         if (player == 0) {
             target_usb_port = gamesir_usb_port;
-        } else if (player == 1) {
-            if (b0_active) target_bt_port = 0;
-            else if (b1_active) target_bt_port = 1;
-            else if (gamesir_usb_port == 0 && u1_type >= 0) target_usb_port = 1;
+        } else if (player == 1 && padsRead == 0) {
+            if (gamesir_usb_port == 0 && u1_type >= 0) target_usb_port = 1;
             else if (gamesir_usb_port == 1 && u0_type >= 0) target_usb_port = 0;
+            else if (b0_active) target_bt_port = 0;
+            else if (b1_active) target_bt_port = 1;
         } else if (player == 2) {
             if (b0_active && b1_active) target_bt_port = 1;
             else if (gamesir_usb_port == 0 && u1_type >= 0 && b0_active) target_usb_port = 1;
             else if (gamesir_usb_port == 1 && u0_type >= 0 && b0_active) target_usb_port = 0;
         }
     } else {
-        if (player == 0) {
+        if (player == 0 && padsRead == 0) {
             if (b0_active) target_bt_port = 0;
             else if (u0_type >= 0) target_usb_port = 0;
             else if (b1_active) target_bt_port = 1;
             else if (u1_type >= 0) target_usb_port = 1;
-        } else if (player == 1) {
+        } else if (player == 1 && padsRead == 0) {
             if (b0_active && (u0_type >= 0)) target_usb_port = 0;
             else if (b0_active && b1_active) target_bt_port = 1;
             else if (u0_type >= 0 && u1_type >= 0) target_usb_port = 1;
