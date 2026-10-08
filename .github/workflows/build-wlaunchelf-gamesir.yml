@@ -11,11 +11,14 @@ permissions:
 jobs:
   build-wlaunchelf:
     runs-on: ubuntu-latest
-    container: ghcr.io/ps2homebrew/ps2homebrew:main
+    container: ps2dev/ps2dev:latest
     defaults:
       run:
         shell: sh
     steps:
+      - name: Install build dependencies
+        run: apk add --no-cache git zip bash make python3 py3-yaml
+
       - name: Checkout source
         uses: actions/checkout@v4
         with:
