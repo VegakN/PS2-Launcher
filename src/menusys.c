@@ -480,6 +480,7 @@ void menuInitGameMenu(void)
         submenuAppendItem(&gameMenu, -1, "Mode 4", GAME_PS5_MODE_BASE + 3, -1);
         submenuAppendItem(&gameMenu, -1, "Mode 5", GAME_PS5_MODE_BASE + 4, -1);
         submenuAppendItem(&gameMenu, -1, "Mode 6", GAME_PS5_MODE_BASE + 5, -1);
+        submenuAppendItem(&gameMenu, -1, "Virtual Memory Cards", GAME_VMC_SETTINGS, -1);
         gameMenuCurrent = gameMenu;
         return;
     }
@@ -3409,6 +3410,19 @@ void menuRenderGameMenu()
         }
 
         {
+            int y = listY + (COMPAT_MODE_COUNT + 1) * rowStep;
+            int focused = selected == COMPAT_MODE_COUNT + 1;
+            int rowFont = focused ? semiBoldFont : gTheme->fonts[1];
+
+            if (y >= listTop - rowStep && y <= listBottom + rowStep) {
+                if (focused)
+                    drawPS5GameFocusIndicator(labelX, y);
+                fntRenderString(rowFont, labelX, y, ALIGN_LEFT | ALIGN_VCENTER, 0, 0, "Virtual Memory Cards", focused ? focusedColor : rowColor);
+                fntRenderString(rowFont, labelX + rowW, y, ALIGN_RIGHT | ALIGN_VCENTER, 0, 0, "<Configure>", focused ? focusedColor : rowColor);
+            }
+        }
+
+        {
             int nextX = drawPS5GameIconAndText(CROSS_ICON, "Play", semiBoldFont, listX, footerY, footerColor);
             drawPS5GameIconAndText(SQUARE_ICON, "Save", semiBoldFont, nextX + 22, footerY, footerColor);
             drawPS5GameRightIconAndText(CIRCLE_ICON, "Close", semiBoldFont, ps5Width - 64, footerY, footerColor);
@@ -3549,6 +3563,15 @@ void menuHandleInputGameMenu()
             ps5GameOptionChange(menuID, 1);
         } else if (getKeyOn(KEY_CROSS)) {
             sfxPlay(SFX_CONFIRM);
+            if (menuID == GAME_VMC_SETTINGS) {
+                guiGameShowVMCMenu(sourceId, sourceSupport);
+                ps5GameOptionsSave(itemConfig);
+                menuSaveConfig();
+                saveConfig(CONFIG_GAME, 0);
+                ps5GameOptionsLoad(gameMenuLoadConfig(NULL));
+                readPads();
+                return;
+            }
             ps5GameOptionsSave(itemConfig);
             if (sourceSupport != NULL && sourceId >= 0) {
                 if (!(sourceSupport->mode >= BDM_MODE && sourceSupport->mode < ETH_MODE))

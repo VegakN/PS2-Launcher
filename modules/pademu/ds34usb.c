@@ -881,6 +881,14 @@ static int LEDRumble(u8 *led, u8 lrum, u8 rrum, int pad)
         usb_out_buf[pad][3] = rrum;
         usb_out_buf[pad][4] = lrum;
         ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_out_buf[pad], 63, usb_cmd_cb, (void *)pad);
+    } else if (ds34pad[pad].type == XBOX_USB && ds34pad[pad].outEndp >= 0) {
+        // XInput (GameSir/Xbox 360): two motor strengths in the standard 8-byte output report.
+        usb_out_buf[pad][0] = 0x00;
+        usb_out_buf[pad][1] = 0x08;
+        usb_out_buf[pad][2] = 0x00;
+        usb_out_buf[pad][3] = lrum;
+        usb_out_buf[pad][4] = rrum;
+        ret = UsbInterruptTransfer(ds34pad[pad].outEndp, usb_out_buf[pad], 8, usb_cmd_cb, (void *)pad);
     }
 
     ds34pad[pad].oldled[0] = led[0];
@@ -941,6 +949,12 @@ int ds34usb_get_data(u8 *dst, int size, int port)
     // The polling thread keeps the latest Xbox report ready for the game.
     // Never wait for a USB transfer in the game's pad read path.
     if (ds34pad[port].type == XBOX_USB) {
+        if (ds34pad[port].update_rum) {
+            rumbleResult = LEDRumble(ds34pad[port].oldled, ds34pad[port].lrum, ds34pad[port].rrum, port);
+            if (rumbleResult != USB_RC_OK)
+                DPRINTF("DS34USB: Xbox rumble transfer error %d\n", rumbleResult);
+            ds34pad[port].update_rum = 0;
+        }
         mips_memcpy(dst, ds34pad[port].data, size);
         ret = ds34pad[port].analog_btn & 1;
         SignalSema(ds34pad[port].sema);
