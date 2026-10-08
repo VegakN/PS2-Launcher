@@ -11,14 +11,7 @@ permissions:
 jobs:
   build-wlaunchelf:
     runs-on: ubuntu-latest
-    container: ps2dev/ps2dev:v1.0
-    defaults:
-      run:
-        shell: sh
     steps:
-      - name: Install build dependencies
-        run: apk add --no-cache make git zip gcompat libc6-compat
-
       - name: Checkout source
         uses: actions/checkout@v4
         with:
@@ -26,11 +19,15 @@ jobs:
           fetch-depth: 0
 
       - name: Mark checkout safe for git version detection
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE/source"
+        run: git -C source config --local safe.directory "$GITHUB_WORKSPACE/source"
 
       - name: Compile wLaunchELF with GameSir driver
-        working-directory: source/wLaunchELF_ISR-latest
-        run: set -o pipefail; make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1 2>&1 | tee wle-build.log
+        run: >
+          docker run --rm
+          -v "$GITHUB_WORKSPACE:/workspace"
+          -w /workspace/source/wLaunchELF_ISR-latest
+          ps2dev/ps2dev:v1.0
+          sh -lc 'apk add --no-cache make git zip && git config --global --add safe.directory /workspace/source && make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1 2>&1 | tee wle-build.log'
 
       - name: Publish wLaunchELF compiler summary
         if: failure()
