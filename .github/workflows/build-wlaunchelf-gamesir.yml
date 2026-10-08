@@ -60,5 +60,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wLaunchELF-GameSir
-          path: source/wLaunchELF_ISR-latest/**/*.ELF
+          path: source/wLaunchELF_ISR-latest/BOOT-DS34.ELF
           if-no-files-found: error
