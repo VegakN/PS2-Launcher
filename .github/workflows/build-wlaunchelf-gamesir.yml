@@ -23,7 +23,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git clone --depth=1 --branch "$GITHUB_REF_NAME" "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" .
+          set +e
+          git clone --depth=1 --branch "$GITHUB_REF_NAME" "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" . 2>clone.err
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            summary=$(sed -E 's#https://x-access-token:[^@]+@#https://x-access-token:REDACTED@#g' clone.err | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error title=Checkout failure::$summary"
+            exit "$rc"
+          fi
           git checkout --detach "$GITHUB_SHA"
 
       - name: Mark checkout safe for git version detection
