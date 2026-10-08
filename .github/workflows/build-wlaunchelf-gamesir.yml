@@ -11,27 +11,16 @@ permissions:
 jobs:
   build-wlaunchelf:
     runs-on: ubuntu-latest
-    container: ps2dev/ps2dev:v1.0
+    container: ghcr.io/ps2homebrew/ps2homebrew:main
     defaults:
       run:
         shell: sh
     steps:
-      - name: Install build dependencies
-        run: apk add --no-cache make git zip
-
       - name: Checkout source
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set +e
-          git clone --depth=1 --branch "$GITHUB_REF_NAME" "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" source 2>clone.err
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
-            summary=$(sed -E 's#https://x-access-token:[^@]+@#https://x-access-token:REDACTED@#g' clone.err | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
-            echo "::error title=Checkout failure::$summary"
-            exit "$rc"
-          fi
-          git -C source checkout --detach "$GITHUB_SHA"
+        uses: actions/checkout@v4
+        with:
+          path: source
+          fetch-depth: 0
 
       - name: Mark checkout safe for git version detection
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/source"
