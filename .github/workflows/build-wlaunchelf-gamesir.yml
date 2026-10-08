@@ -24,20 +24,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e
-          git clone --depth=1 --branch "$GITHUB_REF_NAME" "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" . 2>clone.err
+          git clone --depth=1 --branch "$GITHUB_REF_NAME" "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" source 2>clone.err
           rc=$?
           if [ "$rc" -ne 0 ]; then
             summary=$(sed -E 's#https://x-access-token:[^@]+@#https://x-access-token:REDACTED@#g' clone.err | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
             echo "::error title=Checkout failure::$summary"
             exit "$rc"
           fi
-          git checkout --detach "$GITHUB_SHA"
+          git -C source checkout --detach "$GITHUB_SHA"
 
       - name: Mark checkout safe for git version detection
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE/source"
 
       - name: Compile wLaunchELF with GameSir driver
-        working-directory: wLaunchELF_ISR-latest
+        working-directory: source/wLaunchELF_ISR-latest
         run: set -o pipefail; make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1 2>&1 | tee wle-build.log
 
       - name: Upload wLaunchELF build log on failure
@@ -45,11 +45,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wLaunchELF-GameSir-build-log
-          path: wLaunchELF_ISR-latest/wle-build.log
+          path: source/wLaunchELF_ISR-latest/wle-build.log
 
       - name: Upload wLaunchELF GameSir ELF
         uses: actions/upload-artifact@v4
         with:
           name: wLaunchELF-GameSir
-          path: wLaunchELF_ISR-latest/BOOT*-DS34*.ELF
+          path: source/wLaunchELF_ISR-latest/BOOT*-DS34*.ELF
           if-no-files-found: error
