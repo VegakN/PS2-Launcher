@@ -16,6 +16,9 @@ jobs:
       run:
         shell: sh
     steps:
+      - name: Install build dependencies
+        run: apk add --no-cache make git zip
+
       - name: Checkout source
         env:
           GH_TOKEN: ${{ github.token }}
