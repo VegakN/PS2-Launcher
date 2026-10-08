@@ -49,6 +49,13 @@ jobs:
             echo "::error title=wLaunchELF compiler output::$summary"
           fi
 
+      - name: Stage generated wLaunchELF ELF
+        run: |
+          set -eu
+          elf=$(find source/wLaunchELF_ISR-latest -maxdepth 1 -type f -iname '*.elf' | head -n 1)
+          test -n "$elf"
+          cp "$elf" source/wLaunchELF-GameSir.ELF
+
       - name: Upload wLaunchELF build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -60,5 +67,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wLaunchELF-GameSir
-          path: source/wLaunchELF_ISR-latest/BOOT-DS34.ELF
+          path: source/wLaunchELF-GameSir.ELF
           if-no-files-found: error
