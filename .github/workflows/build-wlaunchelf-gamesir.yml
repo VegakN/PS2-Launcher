@@ -27,7 +27,7 @@ jobs:
           -v "$GITHUB_WORKSPACE:/workspace"
           -w /workspace/source/wLaunchELF_ISR-latest
           ps2dev/ps2dev:v1.0
-          sh -lc 'apk add --no-cache make git zip && git config --global --add safe.directory /workspace/source && make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1 2>&1 | tee wle-build.log'
+          sh -lc 'set -o pipefail && apk add --no-cache make git zip && git config --global --add safe.directory /workspace/source && make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1 2>&1 | tee wle-build.log && elf=$(find . -maxdepth 1 -type f -iname "*.elf" -print -quit) && test -n "$elf" && cp "$elf" /workspace/wLaunchELF-GameSir.ELF'
 
       - name: Publish wLaunchELF compiler summary
         if: failure()
@@ -39,11 +39,7 @@ jobs:
           fi
 
       - name: Stage generated wLaunchELF ELF
-        run: |
-          set -eu
-          elf=$(find source/wLaunchELF_ISR-latest -maxdepth 1 -type f -iname '*.elf' | head -n 1)
-          test -n "$elf"
-          cp "$elf" source/wLaunchELF-GameSir.ELF
+        run: test -s wLaunchELF-GameSir.ELF
 
       - name: Upload wLaunchELF build log on failure
         if: failure()
@@ -56,5 +52,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wLaunchELF-GameSir
-          path: source/wLaunchELF-GameSir.ELF
+          path: wLaunchELF-GameSir.ELF
           if-no-files-found: error
