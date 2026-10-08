@@ -1,0 +1,59 @@
+name: Build Open PS2 Loader latest
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-opl:
+    runs-on: ubuntu-latest
+    container: ghcr.io/ps2homebrew/ps2homebrew:main
+    defaults:
+      run:
+        shell: sh
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mark checkout safe for git version detection
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Restore executable bits lost by Windows checkout
+        working-directory: Open-PS2-Loader-latest
+        run: chmod +x download_*.sh lng_pack.sh make_changelog.sh
+
+      - name: Compile OPL release
+        working-directory: Open-PS2-Loader-latest
+        run: set -o pipefail; make --trace clean release 2>&1 | tee opl-build.log
+
+      - name: Upload OPL build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OPL-build-log
+          path: Open-PS2-Loader-latest/opl-build.log
+
+      - name: Publish compiler failure summary
+        if: failure()
+        working-directory: Open-PS2-Loader-latest
+        run: |
+          if [ -f opl-build.log ]; then
+            summary=$(grep -E -i 'error:|fatal error|undefined reference|No such file|cannot find|not found' opl-build.log | tail -n 20 | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            if [ -z "$summary" ]; then
+              summary=$(tail -n 10 opl-build.log | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            fi
+            echo "::error title=OPL compiler output::$summary"
+          fi
+
+      - name: Upload OPL ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: OPNPS2LD-OPL-latest
+          path: Open-PS2-Loader-latest/OPNPS2LD-*.ELF
+          if-no-files-found: error
