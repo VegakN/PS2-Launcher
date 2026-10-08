@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   build-wlaunchelf:
-    runs-on: ubuntu-latest
+    # ps2dev:v1.0 uses a legacy MIPS assembler that crashes on newer runner kernels.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
