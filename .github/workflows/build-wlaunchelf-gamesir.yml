@@ -20,9 +20,13 @@ jobs:
         run: apk add --no-cache make git zip
 
       - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git -c http.extraheader="AUTHORIZATION: bearer $GH_TOKEN" fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
 
       - name: Mark checkout safe for git version detection
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
