@@ -266,7 +266,7 @@ void sysReset(int modload_mask)
     sysLoadModuleBuffer(&audsrv_irx, size_audsrv_irx, 0, NULL);
 
 #ifdef PADEMU
-    int ds3pads = 3; // keep both USB/Bluetooth controller slots available
+    int ds3pads = 1; // initialize the primary USB/Bluetooth slot during boot
 
     ds34usb_deinit();
     ds34bt_deinit();
