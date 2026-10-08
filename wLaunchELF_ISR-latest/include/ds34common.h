@@ -1,4 +1,4 @@
-﻿#ifndef _DS34COMMON_H_
+#ifndef _DS34COMMON_H_
 #define _DS34COMMON_H_
 #include <types.h>
 
