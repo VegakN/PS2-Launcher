@@ -40,6 +40,18 @@ jobs:
         working-directory: source/wLaunchELF_ISR-latest
         run: set -o pipefail; make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1 2>&1 | tee wle-build.log
 
+      - name: Publish wLaunchELF compiler summary
+        if: failure()
+        working-directory: source/wLaunchELF_ISR-latest
+        run: |
+          if [ -f wle-build.log ]; then
+            summary=$(grep -E -i 'error:|fatal error|undefined reference|No such file|cannot find|not found|Error [0-9]' wle-build.log | tail -n 20 | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            if [ -z "$summary" ]; then
+              summary=$(tail -n 10 wle-build.log | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            fi
+            echo "::error title=wLaunchELF compiler output::$summary"
+          fi
+
       - name: Upload wLaunchELF build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
