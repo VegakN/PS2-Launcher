@@ -1,6 +1,7 @@
 IOP_BIN = ds34usb.irx
 IOP_BIN_DIR = ../../
 IOP_OBJS = ds34usb.o smsutils.o imports.o
+IOP_INCS += -I../../../include/
 
 all: $(IOP_BIN)
 
@@ -9,5 +10,3 @@ clean:
 
 include $(PS2SDK)/Defs.make
 include $(IOP_BIN_DIR)Rules.make
-
-IOP_INCS += -I../../../include/
