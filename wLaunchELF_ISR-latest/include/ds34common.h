@@ -1,6 +1,6 @@
-#ifndef _DS34COMMON_H_
+﻿#ifndef _DS34COMMON_H_
 #define _DS34COMMON_H_
-#include <stdint.h>
+#include <types.h>
 
 #define USB_CLASS_WIRELESS_CONTROLLER 0xE0
 #define USB_SUBCLASS_RF_CONTROLLER    0x01
@@ -60,59 +60,59 @@ struct ds2report
 {
     union
     {
-        uint16_t nButtonState;
+        u16 nButtonState;
         struct
         {
-            uint8_t nButtonStateL; // Main buttons low byte (active-low)
-            uint8_t nButtonStateH; // Main buttons high byte (active-low)
+            u8 nButtonStateL; // Main buttons low byte (active-low)
+            u8 nButtonStateH; // Main buttons high byte (active-low)
         };
         struct
         {
-            uint16_t nSelect   : 1;
-            uint16_t nL3       : 1;
-            uint16_t nR3       : 1;
-            uint16_t nStart    : 1;
-            uint16_t nUp       : 1;
-            uint16_t nRight    : 1;
-            uint16_t nDown     : 1;
-            uint16_t nLeft     : 1;
-            uint16_t nL2       : 1;
-            uint16_t nR2       : 1;
-            uint16_t nL1       : 1;
-            uint16_t nR1       : 1;
-            uint16_t nTriangle : 1;
-            uint16_t nCircle   : 1;
-            uint16_t nCross    : 1;
-            uint16_t nSquare   : 1;
+            u16 nSelect   : 1;
+            u16 nL3       : 1;
+            u16 nR3       : 1;
+            u16 nStart    : 1;
+            u16 nUp       : 1;
+            u16 nRight    : 1;
+            u16 nDown     : 1;
+            u16 nLeft     : 1;
+            u16 nL2       : 1;
+            u16 nR2       : 1;
+            u16 nL1       : 1;
+            u16 nR1       : 1;
+            u16 nTriangle : 1;
+            u16 nCircle   : 1;
+            u16 nCross    : 1;
+            u16 nSquare   : 1;
         };
     };
-    uint8_t RightStickX;
-    uint8_t RightStickY;
-    uint8_t LeftStickX;
-    uint8_t LeftStickY;
+    u8 RightStickX;
+    u8 RightStickY;
+    u8 LeftStickX;
+    u8 LeftStickY;
 
-    uint8_t PressureRight;
-    uint8_t PressureLeft;
-    uint8_t PressureUp;
-    uint8_t PressureDown;
+    u8 PressureRight;
+    u8 PressureLeft;
+    u8 PressureUp;
+    u8 PressureDown;
 
-    uint8_t PressureTriangle;
-    uint8_t PressureCircle;
-    uint8_t PressureCross;
-    uint8_t PressureSquare;
+    u8 PressureTriangle;
+    u8 PressureCircle;
+    u8 PressureCross;
+    u8 PressureSquare;
 
-    uint8_t PressureL1;
-    uint8_t PressureR1;
-    uint8_t PressureL2;
-    uint8_t PressureR2;
+    u8 PressureL1;
+    u8 PressureR1;
+    u8 PressureL2;
+    u8 PressureR2;
 
 } __attribute__((packed));
 
 /* DualSense USB input report 0x01, translated to the native PS2 pad layout. */
-static inline void translate_pad_ds5_usb(const uint8_t *in, struct ds2report *out)
+static inline void translate_pad_ds5_usb(const u8 *in, struct ds2report *out)
 {
-    uint16_t buttons = 0;
-    uint8_t hat = in[8] & 0x0F;
+    u16 buttons = 0;
+    u8 hat = in[8] & 0x0F;
 
     if (hat == 0 || hat == 1 || hat == 7) buttons |= DS2ButtonUp;
     if (hat == 1 || hat == 2 || hat == 3) buttons |= DS2ButtonRight;
@@ -131,7 +131,7 @@ static inline void translate_pad_ds5_usb(const uint8_t *in, struct ds2report *ou
     if (in[9] & 0x40) buttons |= DS2ButtonL3;
     if (in[9] & 0x80) buttons |= DS2ButtonR3;
 
-    out->nButtonState = (uint16_t)~buttons;
+    out->nButtonState = (u16)~buttons;
     out->RightStickX = in[3];
     out->RightStickY = in[4];
     out->LeftStickX = in[1];
@@ -154,60 +154,60 @@ struct ds3report
 {
     union
     {
-        uint16_t ButtonState;
+        u16 ButtonState;
         struct
         {
-            uint8_t ButtonStateL; // Main buttons low byte
-            uint8_t ButtonStateH; // Main buttons high byte
+            u8 ButtonStateL; // Main buttons low byte
+            u8 ButtonStateH; // Main buttons high byte
         };
         struct
         {
-            uint16_t Select   : 1;
-            uint16_t L3       : 1;
-            uint16_t R3       : 1;
-            uint16_t Start    : 1;
-            uint16_t Up       : 1;
-            uint16_t Right    : 1;
-            uint16_t Down     : 1;
-            uint16_t Left     : 1;
-            uint16_t L2       : 1;
-            uint16_t R2       : 1;
-            uint16_t L1       : 1;
-            uint16_t R1       : 1;
-            uint16_t Triangle : 1;
-            uint16_t Circle   : 1;
-            uint16_t Cross    : 1;
-            uint16_t Square   : 1;
+            u16 Select   : 1;
+            u16 L3       : 1;
+            u16 R3       : 1;
+            u16 Start    : 1;
+            u16 Up       : 1;
+            u16 Right    : 1;
+            u16 Down     : 1;
+            u16 Left     : 1;
+            u16 L2       : 1;
+            u16 R2       : 1;
+            u16 L1       : 1;
+            u16 R1       : 1;
+            u16 Triangle : 1;
+            u16 Circle   : 1;
+            u16 Cross    : 1;
+            u16 Square   : 1;
         };
     };
-    uint8_t PSButton;         // PS button
-    uint8_t Reserved1;        // Unknown
-    uint8_t LeftStickX;       // left Joystick X axis 0 - 255, 128 is mid
-    uint8_t LeftStickY;       // left Joystick Y axis 0 - 255, 128 is mid
-    uint8_t RightStickX;      // right Joystick X axis 0 - 255, 128 is mid
-    uint8_t RightStickY;      // right Joystick Y axis 0 - 255, 128 is mid
-    uint8_t Reserved2[4];     // Unknown
-    uint8_t PressureUp;       // digital Pad Up button Pressure 0 - 255
-    uint8_t PressureRight;    // digital Pad Right button Pressure 0 - 255
-    uint8_t PressureDown;     // digital Pad Down button Pressure 0 - 255
-    uint8_t PressureLeft;     // digital Pad Left button Pressure 0 - 255
-    uint8_t PressureL2;       // digital Pad L2 button Pressure 0 - 255
-    uint8_t PressureR2;       // digital Pad R2 button Pressure 0 - 255
-    uint8_t PressureL1;       // digital Pad L1 button Pressure 0 - 255
-    uint8_t PressureR1;       // digital Pad R1 button Pressure 0 - 255
-    uint8_t PressureTriangle; // digital Pad Triangle button Pressure 0 - 255
-    uint8_t PressureCircle;   // digital Pad Circle button Pressure 0 - 255
-    uint8_t PressureCross;    // digital Pad Cross button Pressure 0 - 255
-    uint8_t PressureSquare;   // digital Pad Square button Pressure 0 - 255
-    uint8_t Reserved3[3];     // Unknown
-    uint8_t Charge;           // charging status ? 02 = charge, 03 = normal
-    uint8_t Power;            // Battery status ? 05=full - 02=dying, 01=just before shutdown, EE=charging
-    uint8_t Connection;       // Connection Type ? 14 when operating by bluetooth, 10 when operating by bluetooth with cable plugged in, 16 when bluetooh and rumble
-    uint8_t Reserved4[9];     // Unknown
-    int16_t AccelX;
-    int16_t AccelY;
-    int16_t AccelZ;
-    int16_t GyroZ;
+    u8 PSButton;         // PS button
+    u8 Reserved1;        // Unknown
+    u8 LeftStickX;       // left Joystick X axis 0 - 255, 128 is mid
+    u8 LeftStickY;       // left Joystick Y axis 0 - 255, 128 is mid
+    u8 RightStickX;      // right Joystick X axis 0 - 255, 128 is mid
+    u8 RightStickY;      // right Joystick Y axis 0 - 255, 128 is mid
+    u8 Reserved2[4];     // Unknown
+    u8 PressureUp;       // digital Pad Up button Pressure 0 - 255
+    u8 PressureRight;    // digital Pad Right button Pressure 0 - 255
+    u8 PressureDown;     // digital Pad Down button Pressure 0 - 255
+    u8 PressureLeft;     // digital Pad Left button Pressure 0 - 255
+    u8 PressureL2;       // digital Pad L2 button Pressure 0 - 255
+    u8 PressureR2;       // digital Pad R2 button Pressure 0 - 255
+    u8 PressureL1;       // digital Pad L1 button Pressure 0 - 255
+    u8 PressureR1;       // digital Pad R1 button Pressure 0 - 255
+    u8 PressureTriangle; // digital Pad Triangle button Pressure 0 - 255
+    u8 PressureCircle;   // digital Pad Circle button Pressure 0 - 255
+    u8 PressureCross;    // digital Pad Cross button Pressure 0 - 255
+    u8 PressureSquare;   // digital Pad Square button Pressure 0 - 255
+    u8 Reserved3[3];     // Unknown
+    u8 Charge;           // charging status ? 02 = charge, 03 = normal
+    u8 Power;            // Battery status ? 05=full - 02=dying, 01=just before shutdown, EE=charging
+    u8 Connection;       // Connection Type ? 14 when operating by bluetooth, 10 when operating by bluetooth with cable plugged in, 16 when bluetooh and rumble
+    u8 Reserved4[9];     // Unknown
+    s16 AccelX;
+    s16 AccelY;
+    s16 AccelZ;
+    s16 GyroZ;
 
 } __attribute__((packed));
 
@@ -215,48 +215,48 @@ struct ds3guitarreport
 {
     union
     {
-        uint16_t ButtonState;
+        u16 ButtonState;
         struct
         {
-            uint8_t ButtonStateL; // Main buttons low byte
-            uint8_t ButtonStateH; // Main buttons high byte
+            u8 ButtonStateL; // Main buttons low byte
+            u8 ButtonStateH; // Main buttons high byte
         };
         struct
         {
-            uint16_t Blue      : 1;
-            uint16_t Green     : 1;
-            uint16_t Red       : 1;
-            uint16_t Yellow    : 1;
-            uint16_t Orange    : 1;
-            uint16_t StarPower : 1;
-            uint16_t           : 1;
-            uint16_t           : 1;
-            uint16_t Select    : 1;
-            uint16_t Start     : 1;
-            uint16_t           : 1;
-            uint16_t           : 1;
-            uint16_t PSButton  : 1;
-            uint16_t           : 1;
-            uint16_t           : 1;
-            uint16_t           : 1;
+            u16 Blue      : 1;
+            u16 Green     : 1;
+            u16 Red       : 1;
+            u16 Yellow    : 1;
+            u16 Orange    : 1;
+            u16 StarPower : 1;
+            u16           : 1;
+            u16           : 1;
+            u16 Select    : 1;
+            u16 Start     : 1;
+            u16           : 1;
+            u16           : 1;
+            u16 PSButton  : 1;
+            u16           : 1;
+            u16           : 1;
+            u16           : 1;
         };
     };
-    uint8_t Dpad; // hat format, 0x08 is released, 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
-    uint8_t : 8;
-    uint8_t : 8;
-    uint8_t Whammy; // Whammy axis 0 - 255, 128 is mid
-    uint8_t : 8;
-    uint8_t PressureRightYellow; // digital Pad Right + Yellow button Pressure 0 - 255 (if both are pressed, then they cancel eachother out)
-    uint8_t PressureLeft;        // digital Pad Left button Pressure 0 - 255
-    uint8_t PressureUpGreen;     // digital Pad Up + Green button Pressure 0 - 255 (if both are pressed, then they cancel eachother out)
-    uint8_t PressureDownOrange;  // digital Pad Down + Orange button Pressure 0 - 255 (if both are pressed, then they cancel eachother out)
-    uint8_t PressureBlue;        // digital Pad Blue button Pressure 0 - 255
-    uint8_t PressureRed;         // digital Pad Red button Pressure 0 - 255
-    uint8_t Reserved3[6];        // Unknown
-    int16_t AccelX;
-    int16_t AccelZ;
-    int16_t AccelY;
-    int16_t GyroZ;
+    u8 Dpad; // hat format, 0x08 is released, 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
+    u8 : 8;
+    u8 : 8;
+    u8 Whammy; // Whammy axis 0 - 255, 128 is mid
+    u8 : 8;
+    u8 PressureRightYellow; // digital Pad Right + Yellow button Pressure 0 - 255 (if both are pressed, then they cancel eachother out)
+    u8 PressureLeft;        // digital Pad Left button Pressure 0 - 255
+    u8 PressureUpGreen;     // digital Pad Up + Green button Pressure 0 - 255 (if both are pressed, then they cancel eachother out)
+    u8 PressureDownOrange;  // digital Pad Down + Orange button Pressure 0 - 255 (if both are pressed, then they cancel eachother out)
+    u8 PressureBlue;        // digital Pad Blue button Pressure 0 - 255
+    u8 PressureRed;         // digital Pad Red button Pressure 0 - 255
+    u8 Reserved3[6];        // Unknown
+    s16 AccelX;
+    s16 AccelZ;
+    s16 AccelY;
+    s16 GyroZ;
 
 } __attribute__((packed));
 
@@ -274,55 +274,55 @@ enum DS4DpadDirections {
 
 struct ds4report
 {
-    uint8_t ReportID;
-    uint8_t LeftStickX;   // left Joystick X axis 0 - 255, 128 is mid
-    uint8_t LeftStickY;   // left Joystick Y axis 0 - 255, 128 is mid
-    uint8_t RightStickX;  // right Joystick X axis 0 - 255, 128 is mid
-    uint8_t RightStickY;  // right Joystick Y axis 0 - 255, 128 is mid
-    uint8_t Dpad     : 4; // hat format, 0x08 is released, 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
-    uint8_t Square   : 1;
-    uint8_t Cross    : 1;
-    uint8_t Circle   : 1;
-    uint8_t Triangle : 1;
-    uint8_t L1       : 1;
-    uint8_t R1       : 1;
-    uint8_t L2       : 1;
-    uint8_t R2       : 1;
-    uint8_t Share    : 1;
-    uint8_t Option   : 1;
-    uint8_t L3       : 1;
-    uint8_t R3       : 1;
-    uint8_t PSButton : 1;
-    uint8_t TPad     : 1;
-    uint8_t Counter1 : 6; // counts up by 1 per report
-    uint8_t PressureL2;   // digital Pad L2 button Pressure 0 - 255
-    uint8_t PressureR2;   // digital Pad R2 button Pressure 0 - 255
-    uint8_t Counter2;
-    uint8_t Counter3;
-    uint8_t Battery; // battery level from 0x00 to 0xff
-    int16_t AccelX;
-    int16_t AccelY;
-    int16_t AccelZ;
-    int16_t GyroZ;
-    int16_t GyroY;
-    int16_t GyroX;
-    uint8_t Reserved1[5];    // Unknown
-    uint8_t Power       : 4; // from 0x0 to 0xA - charging, 0xB - charged
-    uint8_t Usb_plugged : 1;
-    uint8_t Headphones  : 1;
-    uint8_t Microphone  : 1;
-    uint8_t Padding     : 1;
-    uint8_t Reserved2[2];        // Unknown
-    uint8_t TPpack;              // number of trackpad packets (0x00 to 0x04)
-    uint8_t PackCounter;         // packet counter
-    uint8_t Finger1ID      : 7;  // counter
-    uint8_t nFinger1Active : 1;  // 0 - active, 1 - unactive
-    uint16_t Finger1X      : 12; // finger 1 coordinates resolution 1920x943
-    uint16_t Finger1Y      : 12;
-    uint8_t Finger2ID      : 7;
-    uint8_t nFinger2Active : 1;
-    uint16_t Finger2X      : 12; // finger 2 coordinates resolution 1920x943
-    uint16_t Finger2Y      : 12;
+    u8 ReportID;
+    u8 LeftStickX;   // left Joystick X axis 0 - 255, 128 is mid
+    u8 LeftStickY;   // left Joystick Y axis 0 - 255, 128 is mid
+    u8 RightStickX;  // right Joystick X axis 0 - 255, 128 is mid
+    u8 RightStickY;  // right Joystick Y axis 0 - 255, 128 is mid
+    u8 Dpad     : 4; // hat format, 0x08 is released, 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
+    u8 Square   : 1;
+    u8 Cross    : 1;
+    u8 Circle   : 1;
+    u8 Triangle : 1;
+    u8 L1       : 1;
+    u8 R1       : 1;
+    u8 L2       : 1;
+    u8 R2       : 1;
+    u8 Share    : 1;
+    u8 Option   : 1;
+    u8 L3       : 1;
+    u8 R3       : 1;
+    u8 PSButton : 1;
+    u8 TPad     : 1;
+    u8 Counter1 : 6; // counts up by 1 per report
+    u8 PressureL2;   // digital Pad L2 button Pressure 0 - 255
+    u8 PressureR2;   // digital Pad R2 button Pressure 0 - 255
+    u8 Counter2;
+    u8 Counter3;
+    u8 Battery; // battery level from 0x00 to 0xff
+    s16 AccelX;
+    s16 AccelY;
+    s16 AccelZ;
+    s16 GyroZ;
+    s16 GyroY;
+    s16 GyroX;
+    u8 Reserved1[5];    // Unknown
+    u8 Power       : 4; // from 0x0 to 0xA - charging, 0xB - charged
+    u8 Usb_plugged : 1;
+    u8 Headphones  : 1;
+    u8 Microphone  : 1;
+    u8 Padding     : 1;
+    u8 Reserved2[2];        // Unknown
+    u8 TPpack;              // number of trackpad packets (0x00 to 0x04)
+    u8 PackCounter;         // packet counter
+    u8 Finger1ID      : 7;  // counter
+    u8 nFinger1Active : 1;  // 0 - active, 1 - unactive
+    u16 Finger1X      : 12; // finger 1 coordinates resolution 1920x943
+    u16 Finger1Y      : 12;
+    u8 Finger2ID      : 7;
+    u8 nFinger2Active : 1;
+    u16 Finger2X      : 12; // finger 2 coordinates resolution 1920x943
+    u16 Finger2Y      : 12;
 
 } __attribute__((packed));
 
@@ -333,7 +333,7 @@ struct ds4report
  * @param pressure_emu set to 1 to extrapolate digital buttons into button pressure
  * NOTE: if set to 0, ds3report must be large enough for that data to be read!
  */
-void translate_pad_ds3(const struct ds3report *in, struct ds2report *out, uint8_t pressure_emu);
+void translate_pad_ds3(const struct ds3report *in, struct ds2report *out, u8 pressure_emu);
 
 /**
  * Translate PS3 Guitar pad data into DS2 Guitar pad data.
@@ -341,7 +341,7 @@ void translate_pad_ds3(const struct ds3report *in, struct ds2report *out, uint8_
  * @param out PS2 Guitar report
  * @param guitar_hero_format set to 1 if this is a guitar hero guitar, set to 0 if this is a rock band guitar
  */
-void translate_pad_guitar(const struct ds3guitarreport *in, struct ds2report *out, uint8_t guitar_hero_format);
+void translate_pad_guitar(const struct ds3guitarreport *in, struct ds2report *out, u8 guitar_hero_format);
 
 /**
  * Translate DS3 pad data into DS2 pad data.
@@ -350,6 +350,6 @@ void translate_pad_guitar(const struct ds3guitarreport *in, struct ds2report *ou
  * @param have_touchpad set to 1 if input report has touchpad data
  * NOTE: if set to 1, ds4report must be large enough for that data to be read!
  */
-void translate_pad_ds4(const struct ds4report *in, struct ds2report *out, uint8_t have_touchpad);
+void translate_pad_ds4(const struct ds4report *in, struct ds2report *out, u8 have_touchpad);
 
 #endif
