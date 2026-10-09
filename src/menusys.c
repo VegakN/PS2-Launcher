@@ -100,9 +100,11 @@ static int ps5GameCompatMode;
 static int ps5GameGSMResolution;
 extern int gPS5CarouselNavInterrupt;
 
-static const char *ps5GameResolutionNames[] = {"Standard", "720p", "1080i"};
-static const int ps5GameResolutionGSMModes[] = {0, 10, 11};
-#define PS5_GAME_RESOLUTION_COUNT 3
+/* Per-game output mode.  These are GSM modes, so they are stored in the
+ * game's CFG and override the launcher-wide video mode only for that title. */
+static const char *ps5GameResolutionNames[] = {"Standard", "480p", "576p", "720p", "1080i"};
+static const int ps5GameResolutionGSMModes[] = {0, 8, 9, 10, 11};
+#define PS5_GAME_RESOLUTION_COUNT 5
 
 extern void rmDrawRoundedRect(int x, int y, int w, int h, int r, u64 color);
 extern void rmDrawRoundedRectWide(int x, int y, int w, int h, int r, u64 color);
@@ -132,10 +134,14 @@ static void ps5GameOptionsLoad(config_set_t *configSet)
         configGetInt(configSet, CONFIG_ITEM_ENABLEGSM, &enableGSM);
         configGetInt(configSet, CONFIG_ITEM_GSMVMODE, &gsmMode);
         if (enableGSM) {
-            if (gsmMode == 10)
+            if (gsmMode == 8)
                 ps5GameGSMResolution = 1;
-            else if (gsmMode == 11)
+            else if (gsmMode == 9)
                 ps5GameGSMResolution = 2;
+            else if (gsmMode == 10)
+                ps5GameGSMResolution = 3;
+            else if (gsmMode == 11)
+                ps5GameGSMResolution = 4;
         }
     }
 }
