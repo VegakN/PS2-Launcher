@@ -3502,7 +3502,10 @@ int setFileList(const char *path, const char *ext, FILEINFO *files, int cnfmode)
 		if ((cnfmode != USBD_IRX_CNF) && (cnfmode != USBKBD_IRX_CNF) && (cnfmode != USBMASS_IRX_CNF)) {
 			//The condition above blocks selecting USB drivers from USB devices
 			if (USB_mass_ix[0] || !USB_mass_scanned) {
-				strcpy(files[nfiles].name, "mass:");
+				/* Use the concrete mass0: path once the first unit has been
+				 * confirmed.  This avoids relying on the mass: alias when
+				 * wLaunchELF inherited USBMASS from the boot environment. */
+				strcpy(files[nfiles].name, USB_mass_ix[0] ? "mass0:" : "mass:");
 				files[nfiles++].stats.AttrFile = sceMcFileAttrSubdir;
 			}
 			for (i = 1; i < 10; i++) {
