@@ -164,6 +164,8 @@ enum UI_ITEMS {
     PADCFG_PAD_MAC_STR,
     PADCFG_PAIR,
     PADCFG_PAIR_STR,
+    PADCFG_BT_MANAGER,
+    PADCFG_BT_MANAGER_STR,
     PADCFG_BTINFO,
     PADCFG_VID,
     PADCFG_PID,
@@ -178,6 +180,11 @@ enum UI_ITEMS {
     PADCFG_PADEMU_MTAP_PORT,
     PADCFG_PADEMU_WORKAROUND,
     PADCFG_PADEMU_WORKAROUND_STR,
+
+    BT_MANAGER_DEVICE,
+    BT_MANAGER_SCAN,
+    BT_MANAGER_PAIR,
+    BT_MANAGER_STATUS,
 
     PADMACRO_GLOBAL_BUTTON,
     PADMACRO_CFG_SOURCE,
@@ -207,6 +214,7 @@ enum UI_ITEMS {
 
 #ifdef PADEMU
 extern struct UIItem diaPadEmuConfig[];
+extern struct UIItem diaBluetoothManager[];
 extern struct UIItem diaPadMacroConfig[];
 extern struct UIItem diaPadEmuInfo[];
 #endif

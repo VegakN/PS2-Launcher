@@ -19,6 +19,23 @@ typedef struct
     u16 rev;
 } __attribute__((packed)) hci_information_t;
 
+#define DS34BT_SCAN_MAX 8
+#define DS34BT_NAME_MAX 32
+
+enum eDS34BTScanState {
+    DS34BT_SCAN_IDLE = 0,
+    DS34BT_SCAN_RUNNING = 1,
+    DS34BT_SCAN_COMPLETE = 2,
+};
+
+typedef struct
+{
+    u8 bdaddr[6];
+    u8 class_of_device[3];
+    u8 status;
+    char name[DS34BT_NAME_MAX];
+} ds34bt_scan_result_t;
+
 int ds34bt_init();
 int ds34bt_deinit();
 int ds34bt_reinit_ports(u8 ports);
@@ -31,3 +48,7 @@ int ds34bt_get_data(int port, u8 *data);
 int ds34bt_reset();
 int ds34bt_get_version(hci_information_t *info);
 int ds34bt_get_features(u8 *info);
+int ds34bt_scan_start();
+int ds34bt_scan_get_status(int *count);
+int ds34bt_scan_get(int index, ds34bt_scan_result_t *result);
+int ds34bt_pair(const u8 *bdaddr);

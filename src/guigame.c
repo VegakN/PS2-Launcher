@@ -547,6 +547,12 @@ static int dgmacset = 0;
 static int dg_discon = 0;
 static int ver_set = 0, feat_set = 0;
 
+static char bt_manager_device_text[DS34BT_SCAN_MAX][64];
+static const char *bt_manager_device_enum[DS34BT_SCAN_MAX + 1];
+static int bt_manager_device_count;
+static int bt_manager_last_state = -1;
+static int bt_manager_last_count = -1;
+
 static int forceGlobalPadEmu;
 static int forceGlobalPadMacro;
 
@@ -572,6 +578,103 @@ static char *ver_to_str(char *str, u8 ma, u16 mi)
     sprintf(str, "%X.%04X    BT %s", ma, mi, bt_ver_str[ma]);
 
     return str;
+}
+
+static void guiBluetoothManagerRefreshDevices(int count)
+{
+    int i;
+    ds34bt_scan_result_t result;
+    char mac[18];
+
+    if (count > DS34BT_SCAN_MAX)
+        count = DS34BT_SCAN_MAX;
+
+    bt_manager_device_count = count;
+    for (i = 0; i < count; i++) {
+        if (ds34bt_scan_get(i, &result)) {
+            bdaddr_to_str(result.bdaddr, mac);
+            if (result.name[0])
+                snprintf(bt_manager_device_text[i], sizeof(bt_manager_device_text[i]), "%s - %s", result.name, mac);
+            else
+                snprintf(bt_manager_device_text[i], sizeof(bt_manager_device_text[i]), "%s", mac);
+        } else {
+            snprintf(bt_manager_device_text[i], sizeof(bt_manager_device_text[i]), "Unknown device %d", i + 1);
+        }
+        bt_manager_device_enum[i] = bt_manager_device_text[i];
+    }
+
+    if (count == 0) {
+        bt_manager_device_enum[0] = "No devices found";
+        bt_manager_device_enum[1] = NULL;
+    } else {
+        bt_manager_device_enum[count] = NULL;
+    }
+
+    diaSetEnum(diaBluetoothManager, BT_MANAGER_DEVICE, bt_manager_device_enum);
+}
+
+static int guiBluetoothManagerUpdater(int modified)
+{
+    int count = 0;
+    int state = ds34bt_scan_get_status(&count);
+    int selected = 0;
+
+    diaGetInt(diaBluetoothManager, BT_MANAGER_DEVICE, &selected);
+    if (count == 0 || selected >= count)
+        diaSetInt(diaBluetoothManager, BT_MANAGER_DEVICE, 0);
+
+    if (state != bt_manager_last_state || count != bt_manager_last_count) {
+        guiBluetoothManagerRefreshDevices(count);
+        bt_manager_last_state = state;
+        bt_manager_last_count = count;
+    }
+
+    if (state == DS34BT_SCAN_RUNNING)
+        diaSetLabel(diaBluetoothManager, BT_MANAGER_STATUS, "Searching for Bluetooth devices...");
+    else if (state == DS34BT_SCAN_COMPLETE)
+        diaSetLabel(diaBluetoothManager, BT_MANAGER_STATUS, "Select a device and choose Pair selected.");
+    else if (!(ds34bt_get_status(0) & DS34BT_STATE_USB_CONFIGURED))
+        diaSetLabel(diaBluetoothManager, BT_MANAGER_STATUS, "Connect a compatible Bluetooth USB adapter.");
+    else
+        diaSetLabel(diaBluetoothManager, BT_MANAGER_STATUS, "Press Scan to search for controllers.");
+
+    return 0;
+}
+
+static void guiGameShowBluetoothManager()
+{
+    int result = -1;
+
+    bt_manager_last_state = -1;
+    bt_manager_last_count = -1;
+    guiBluetoothManagerRefreshDevices(0);
+
+    while (result != 0) {
+        result = diaExecuteDialog(diaBluetoothManager, result, 1, &guiBluetoothManagerUpdater);
+
+        if (result == BT_MANAGER_SCAN) {
+            if (!ds34bt_scan_start())
+                diaSetLabel(diaBluetoothManager, BT_MANAGER_STATUS, "Bluetooth scan could not be started.");
+        } else if (result == BT_MANAGER_PAIR) {
+            int selected = 0;
+            ds34bt_scan_result_t device;
+            char key[32];
+            char mac[18];
+
+            diaGetInt(diaBluetoothManager, BT_MANAGER_DEVICE, &selected);
+            if (selected < bt_manager_device_count && ds34bt_scan_get(selected, &device) && ds34bt_pair(device.bdaddr)) {
+                bdaddr_to_str(device.bdaddr, mac);
+                snprintf(key, sizeof(key), "bt_paired_%d", selected);
+                configSetStr(configGetByType(CONFIG_OPL), key, mac);
+                diaSetLabel(diaBluetoothManager, BT_MANAGER_STATUS, "Pairing started. Put the controller in pairing mode.");
+            } else {
+                diaSetLabel(diaBluetoothManager, BT_MANAGER_STATUS, "Select a discovered device first.");
+            }
+        }
+
+        if (result == UIID_BTN_OK)
+            break;
+    }
 }
 
 static int guiGamePadEmuUpdater(int modified)
@@ -614,10 +717,12 @@ static int guiGamePadEmuUpdater(int modified)
     diaSetVisible(diaPadEmuConfig, PADCFG_USBDG_MAC, (PadEmuMode == 1) & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PAD_MAC, (PadEmuMode == 1) & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PAIR, (PadEmuMode == 1) & EnablePadEmu);
+    diaSetVisible(diaPadEmuConfig, PADCFG_BT_MANAGER, (PadEmuMode == 1) & EnablePadEmu);
 
     diaSetVisible(diaPadEmuConfig, PADCFG_USBDG_MAC_STR, (PadEmuMode == 1) & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PAD_MAC_STR, (PadEmuMode == 1) & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PAIR_STR, (PadEmuMode == 1) & EnablePadEmu);
+    diaSetVisible(diaPadEmuConfig, PADCFG_BT_MANAGER_STR, (PadEmuMode == 1) & EnablePadEmu);
 
     diaSetVisible(diaPadEmuConfig, PADCFG_BTINFO, (PadEmuMode == 1) & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PADEMU_WORKAROUND, (PadEmuMode == 1) & EnablePadEmu);
@@ -765,10 +870,12 @@ void guiGameShowPadEmuConfig(int forceGlobal)
     diaSetVisible(diaPadEmuConfig, PADCFG_USBDG_MAC, PadEmuSettings & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PAD_MAC, PadEmuSettings & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PAIR, PadEmuSettings & EnablePadEmu);
+    diaSetVisible(diaPadEmuConfig, PADCFG_BT_MANAGER, PadEmuSettings & EnablePadEmu);
 
     diaSetVisible(diaPadEmuConfig, PADCFG_USBDG_MAC_STR, PadEmuSettings & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PAD_MAC_STR, PadEmuSettings & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PAIR_STR, PadEmuSettings & EnablePadEmu);
+    diaSetVisible(diaPadEmuConfig, PADCFG_BT_MANAGER_STR, PadEmuSettings & EnablePadEmu);
 
     diaSetVisible(diaPadEmuConfig, PADCFG_BTINFO, PadEmuSettings & EnablePadEmu);
     diaSetVisible(diaPadEmuConfig, PADCFG_PADEMU_WORKAROUND, PadEmuSettings & EnablePadEmu);
@@ -811,6 +918,9 @@ void guiGameShowPadEmuConfig(int forceGlobal)
             feat_set = 0;
             diaExecuteDialog(diaPadEmuInfo, -1, 1, &guiGamePadEmuInfoUpdater);
         }
+
+        if (result == PADCFG_BT_MANAGER)
+            guiGameShowBluetoothManager();
 
         if (result == UIID_BTN_OK)
             break;

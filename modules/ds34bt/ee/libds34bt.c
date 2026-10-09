@@ -13,6 +13,10 @@
 #define DS34BT_RESET         8
 #define DS34BT_GET_VERSION   9
 #define DS34BT_GET_FEATURES  10
+#define DS34BT_SCAN_START    11
+#define DS34BT_SCAN_STATUS   12
+#define DS34BT_SCAN_GET      13
+#define DS34BT_PAIR          14
 
 #define DS34BT_BIND_RPC_ID 0x18E3878F
 
@@ -170,4 +174,50 @@ int ds34bt_get_features(u8 *info)
     }
 
     return ret;
+}
+
+int ds34bt_scan_start()
+{
+    if (!ds34bt_inited)
+        return 0;
+
+    return (SifCallRpc(&ds34bt, DS34BT_SCAN_START, 0, NULL, 0, NULL, 0, NULL, NULL) == 0);
+}
+
+int ds34bt_scan_get_status(int *count)
+{
+    int ret = DS34BT_SCAN_IDLE;
+
+    if (!ds34bt_inited)
+        return ret;
+
+    if (SifCallRpc(&ds34bt, DS34BT_SCAN_STATUS, 0, NULL, 0, rpcbuf, 2, NULL, NULL) == 0) {
+        ret = rpcbuf[0];
+        if (count)
+            *count = rpcbuf[1];
+    }
+
+    return ret;
+}
+
+int ds34bt_scan_get(int index, ds34bt_scan_result_t *result)
+{
+    if (!ds34bt_inited || !result || index < 0 || index >= DS34BT_SCAN_MAX)
+        return 0;
+
+    rpcbuf[0] = index;
+    if (SifCallRpc(&ds34bt, DS34BT_SCAN_GET, 0, rpcbuf, 1, rpcbuf, sizeof(ds34bt_scan_result_t), NULL, NULL) != 0)
+        return 0;
+
+    memcpy(result, rpcbuf, sizeof(ds34bt_scan_result_t));
+    return result->status != 0;
+}
+
+int ds34bt_pair(const u8 *bdaddr)
+{
+    if (!ds34bt_inited || !bdaddr)
+        return 0;
+
+    memcpy(rpcbuf, bdaddr, 6);
+    return (SifCallRpc(&ds34bt, DS34BT_PAIR, 0, rpcbuf, 6, NULL, 0, NULL, NULL) == 0);
 }

@@ -618,6 +618,11 @@ struct UIItem diaPadEmuConfig[] = {
     {UI_BUTTON, PADCFG_PAIR, 1, 1, _STR_HINT_PAIRPAD, 0, 0, {.label = {NULL, _STR_PAIR}}},
     {UI_BREAK},
 
+    {UI_LABEL, PADCFG_BT_MANAGER_STR, 1, 1, -1, -50, 0, {.label = {"Bluetooth devices", -1}}},
+    {UI_SPACER},
+    {UI_BUTTON, PADCFG_BT_MANAGER, 1, 1, _STR_HINT_BTINFO, 0, 0, {.label = {"Manage", -1}}},
+    {UI_BREAK},
+
     {UI_LABEL, PADCFG_PADEMU_WORKAROUND_STR, 1, 1, -1, -50, 0, {.label = {NULL, _STR_PADEMU_WORKAROUND}}},
     {UI_SPACER},
     {UI_BOOL, PADCFG_PADEMU_WORKAROUND, 1, 1, _STR_HINT_PADEMU_WORKAROUND, 0, 0, {.intvalue = {1, 1}}},
@@ -807,6 +812,23 @@ struct UIItem diaPadEmuInfo[] = {
     {UI_OK, 0, 1, 1, -1, 0, 0, {.label = {NULL, _STR_OK}}},
 
     // end of dialog
+    {UI_TERMINATOR}};
+
+struct UIItem diaBluetoothManager[] = {
+    {UI_LABEL, 0, 1, 1, -1, 0, 0, {.label = {"Bluetooth pairing", -1}}},
+    {UI_SPLITTER},
+    {UI_LABEL, BT_MANAGER_STATUS, 1, 1, -1, 0, 0, {.label = {"Adapter not scanned", -1}}},
+    {UI_BREAK},
+    {UI_LABEL, 0, 1, 1, -1, -50, 0, {.label = {"Device", -1}}},
+    {UI_SPACER},
+    {UI_ENUM, BT_MANAGER_DEVICE, 1, 1, -1, 0, 0, {.intvalue = {0, 0}}},
+    {UI_BREAK},
+    {UI_BUTTON, BT_MANAGER_SCAN, 1, 1, -1, 0, 0, {.label = {"Scan", -1}}},
+    {UI_BREAK},
+    {UI_BUTTON, BT_MANAGER_PAIR, 1, 1, -1, 0, 0, {.label = {"Pair selected", -1}}},
+    {UI_BREAK},
+    {UI_OK, 0, 1, 1, -1, 0, 0, {.label = {NULL, _STR_OK}}},
+    {UI_BREAK},
     {UI_TERMINATOR}};
 
 struct UIItem diaPadMacroConfig[] = {

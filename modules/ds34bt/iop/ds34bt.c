@@ -36,6 +36,47 @@ static UsbDriver chrg_driver = {NULL, NULL, "ds34chrg", chrg_probe, chrg_connect
 static void ds34pad_clear(int pad);
 static void ds34pad_init();
 
+static ds34bt_scan_result_t scan_results[DS34BT_SCAN_MAX];
+static u8 scan_state = 0;
+static u8 scan_count = 0;
+static u8 scan_name_index = 0;
+static u8 scan_name_pending = 0;
+
+static void scan_reset()
+{
+    mips_memset(scan_results, 0, sizeof(scan_results));
+    scan_state = 0;
+    scan_count = 0;
+    scan_name_index = 0;
+    scan_name_pending = 0;
+}
+
+static int scan_find(const u8 *bdaddr)
+{
+    int i;
+
+    for (i = 0; i < scan_count; i++) {
+        if (memcmp(scan_results[i].bdaddr, bdaddr, 6) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+static void scan_request_next_name()
+{
+    while (scan_name_index < scan_count && scan_results[scan_name_index].name[0] != '\0')
+        scan_name_index++;
+
+    if (scan_name_index < scan_count) {
+        scan_name_pending = 1;
+        hci_remote_name(scan_results[scan_name_index].bdaddr);
+    } else {
+        scan_name_pending = 0;
+        scan_state = 2;
+    }
+}
+
 static int bt_probe(int devId)
 {
     UsbDeviceDescriptor *device = NULL;
@@ -343,7 +384,7 @@ static u8 GenuineMacAddress[][3] =
 #define REQ_HCI_OUT     (USB_DIR_OUT | USB_TYPE_CLASS | USB_RECIP_DEVICE)
 #define HCI_COMMAND_REQ 0
 
-#define MAX_PADS 2
+#define MAX_PADS 4
 
 static u8 bt_bdaddr[6];              // usb bt adapter mac address
 static hci_information_t bt_version; // bt adapter version information
@@ -371,6 +412,10 @@ static void hid_readReport(u8 *data, int bytes, int pad);
 
 static int l2cap_connection_request(u16 handle, u8 rxid, u16 scid, u16 psm);
 static int hci_reset();
+static int hci_remote_name(u8 *bdaddr);
+static int hci_inquiry();
+static int hci_create_connection(u8 *bdaddr, u8 page_scan_repetition, u16 clock_offset);
+static int hci_pin_code_request_reply(u8 *bdaddr);
 
 static void bt_config_set(int result, int count, void *arg)
 {
@@ -411,6 +456,53 @@ static int hci_write_scan_enable(u8 conf)
     hci_cmd_buf[3] = conf;
 
     return HCI_Command(4, hci_cmd_buf);
+}
+
+static int hci_inquiry()
+{
+    // General Inquiry LAP, 8 inquiry trains, unlimited response count.
+    hci_cmd_buf[0] = HCI_OCF_INQUIRY;
+    hci_cmd_buf[1] = HCI_OGF_LINK_CNTRL;
+    hci_cmd_buf[2] = 0x05;
+    hci_cmd_buf[3] = 0x33;
+    hci_cmd_buf[4] = 0x8B;
+    hci_cmd_buf[5] = 0x9E;
+    hci_cmd_buf[6] = 0x08;
+    hci_cmd_buf[7] = 0x00;
+
+    return HCI_Command(8, hci_cmd_buf);
+}
+
+static int hci_create_connection(u8 *bdaddr, u8 page_scan_repetition, u16 clock_offset)
+{
+    hci_cmd_buf[0] = HCI_OCF_CREATE_CONNECTION;
+    hci_cmd_buf[1] = HCI_OGF_LINK_CNTRL;
+    hci_cmd_buf[2] = 0x0D;
+    mips_memcpy(&hci_cmd_buf[3], bdaddr, 6);
+    hci_cmd_buf[9] = 0x18;
+    hci_cmd_buf[10] = 0xCC;
+    hci_cmd_buf[11] = page_scan_repetition;
+    hci_cmd_buf[12] = 0x00;
+    hci_cmd_buf[13] = (u8)(clock_offset & 0xFF);
+    hci_cmd_buf[14] = (u8)(clock_offset >> 8);
+    hci_cmd_buf[15] = 0x01;
+
+    return HCI_Command(16, hci_cmd_buf);
+}
+
+static int hci_pin_code_request_reply(u8 *bdaddr)
+{
+    static const u8 pin[] = {'0', '0', '0', '0'};
+
+    hci_cmd_buf[0] = HCI_OCF_PIN_CODE_REQUEST_REPLY;
+    hci_cmd_buf[1] = HCI_OGF_LINK_CNTRL;
+    hci_cmd_buf[2] = 0x17;
+    mips_memcpy(&hci_cmd_buf[3], bdaddr, 6);
+    hci_cmd_buf[9] = sizeof(pin);
+    mips_memcpy(&hci_cmd_buf[10], pin, sizeof(pin));
+    mips_memset(&hci_cmd_buf[14], 0, 12);
+
+    return HCI_Command(26, hci_cmd_buf);
 }
 
 static int hci_accept_connection(u8 *bdaddr)
@@ -543,6 +635,34 @@ static void HCI_event_task(int result)
         /*  buf[n] = Event Parameters based on each event  */
         DPRINTF("HCI event = 0x%02X \n", hci_buf[0]);
         switch (hci_buf[0]) { // switch on event type
+            case HCI_EVENT_INQUIRY_RESULT: {
+                int n, i, result_offset;
+
+                n = hci_buf[2];
+                if (n > DS34BT_SCAN_MAX - scan_count)
+                    n = DS34BT_SCAN_MAX - scan_count;
+
+                for (i = 0; i < n; i++) {
+                    result_offset = 3 + (i * 13);
+                    if (result_offset + 13 > MAX_BUFFER_SIZE)
+                        break;
+                    if (scan_find(&hci_buf[result_offset]) >= 0)
+                        continue;
+
+                    mips_memcpy(scan_results[scan_count].bdaddr, &hci_buf[result_offset], 6);
+                    mips_memcpy(scan_results[scan_count].class_of_device, &hci_buf[result_offset + 8], 3);
+                    scan_results[scan_count].status = 1;
+                    scan_results[scan_count].name[0] = '\0';
+                    scan_count++;
+                }
+                break;
+            }
+
+            case HCI_EVENT_INQUIRY_COMPLETE:
+                if (scan_state == 1)
+                    scan_request_next_name();
+                break;
+
             case HCI_EVENT_COMMAND_COMPLETE:
                 DPRINTF("HCI Command Complete = 0x%02X \n", hci_buf[3]);
                 DPRINTF("\tReturned = 0x%02X \n", hci_buf[5]);
@@ -664,6 +784,21 @@ static void HCI_event_task(int result)
             case HCI_EVENT_REMOTE_NAME_COMPLETE:
                 DPRINTF("HCI Remote Name Requested Complete Event: \n");
                 DPRINTF("\t Status = 0x%02X \n", hci_buf[2]);
+                if (scan_name_pending) {
+                    int scan_index = scan_find(&hci_buf[3]);
+                    if (scan_index >= 0) {
+                        int name_len = hci_buf[1] - 9;
+                        if (name_len < 0)
+                            name_len = 0;
+                        if (name_len >= DS34BT_NAME_MAX)
+                            name_len = DS34BT_NAME_MAX - 1;
+                        if (hci_buf[2] == 0 && name_len > 0)
+                            mips_memcpy(scan_results[scan_index].name, &hci_buf[9], name_len);
+                        scan_results[scan_index].name[name_len] = '\0';
+                    }
+                    scan_name_index++;
+                    scan_request_next_name();
+                }
                 if (!hci_buf[2]) {
                     for (i = 0; i < MAX_PADS; i++) {
                         if (memcmp(ds34pad[i].bdaddr, hci_buf + 3, 6) == 0) {
@@ -763,6 +898,7 @@ static void HCI_event_task(int result)
 
             case HCI_EVENT_PIN_CODE_REQUEST:
                 DPRINTF("HCI Pin Code Request Event \n");
+                hci_pin_code_request_reply(&hci_buf[2]);
                 break;
 
             case HCI_EVENT_LINK_KEY_REQUEST:
@@ -819,6 +955,7 @@ static void ds34pad_init()
 
     g_press_emu = 0;
     identifier = 0;
+    scan_reset();
 }
 
 static void hci_event_cb(int resultCode, int bytes, void *arg)
@@ -1586,6 +1723,80 @@ int ds34bt_init(u8 pads)
     return 1;
 }
 
+int ds34bt_scan_start()
+{
+    int ret;
+
+    if (!(bt_dev.status & DS34BT_STATE_USB_CONFIGURED))
+        return 0;
+
+    WaitSema(bt_dev.hid_sema);
+    scan_reset();
+    scan_state = 1;
+    ret = hci_inquiry();
+    if (ret != USB_RC_OK)
+        scan_state = 0;
+    SignalSema(bt_dev.hid_sema);
+
+    return ret == USB_RC_OK;
+}
+
+int ds34bt_scan_get_status(int *count)
+{
+    int ret;
+
+    WaitSema(bt_dev.hid_sema);
+    ret = scan_state;
+    if (count)
+        *count = scan_count;
+    SignalSema(bt_dev.hid_sema);
+
+    return ret;
+}
+
+int ds34bt_scan_get(int index, ds34bt_scan_result_t *result)
+{
+    if (!result || index < 0 || index >= scan_count)
+        return 0;
+
+    WaitSema(bt_dev.hid_sema);
+    mips_memcpy(result, &scan_results[index], sizeof(ds34bt_scan_result_t));
+    SignalSema(bt_dev.hid_sema);
+
+    return result->status != 0;
+}
+
+int ds34bt_pair(u8 *bdaddr)
+{
+    int pad;
+    int ret;
+
+    if (!(bt_dev.status & DS34BT_STATE_USB_CONFIGURED) || !bdaddr)
+        return 0;
+
+    WaitSema(bt_dev.hid_sema);
+    for (pad = 0; pad < MAX_PADS; pad++) {
+        if (ds34pad[pad].enabled && !pad_status_check(DS34BT_STATE_RUNNING, pad) &&
+            !pad_status_check(DS34BT_STATE_CONNECTED, pad))
+            break;
+    }
+
+    if (pad >= MAX_PADS) {
+        SignalSema(bt_dev.hid_sema);
+        return 0;
+    }
+
+    mips_memcpy(ds34pad[pad].bdaddr, bdaddr, 6);
+    ds34pad[pad].hci_handle = 0x0FFF;
+    ds34pad[pad].type = DS3;
+    pad_status_clear(DS34BT_STATE_DISCONNECTING, pad);
+    pad_status_clear(DS34BT_STATE_DISCONNECT_REQUEST, pad);
+    ret = hci_create_connection(bdaddr, 0x01, 0x0000);
+    SignalSema(bt_dev.hid_sema);
+
+    return ret == USB_RC_OK;
+}
+
 static u8 chrg_inited = 0;
 
 void ds34bt_init_charging()
@@ -1621,6 +1832,10 @@ static int rpc_buf[64] __attribute((aligned(16)));
 #define DS34BT_RESET         8
 #define DS34BT_GET_VERSION   9
 #define DS34BT_GET_FEATURES  10
+#define DS34BT_SCAN_START    11
+#define DS34BT_SCAN_STATUS   12
+#define DS34BT_SCAN_GET      13
+#define DS34BT_PAIR          14
 
 #define DS34BT_BIND_RPC_ID 0x18E3878F
 
@@ -1664,6 +1879,19 @@ void *rpc_sf(int cmd, void *data, int size)
             break;
         case DS34BT_GET_FEATURES:
             *((u8 *)data + 8) = ds34bt_get_feat((u8 *)data);
+            break;
+        case DS34BT_SCAN_START:
+            ds34bt_scan_start();
+            break;
+        case DS34BT_SCAN_STATUS:
+            ((u8 *)data)[0] = ds34bt_scan_get_status((int *)&rpc_buf[1]);
+            ((u8 *)data)[1] = (u8)rpc_buf[1];
+            break;
+        case DS34BT_SCAN_GET:
+            ds34bt_scan_get(((u8 *)data)[0], (ds34bt_scan_result_t *)data);
+            break;
+        case DS34BT_PAIR:
+            ds34bt_pair((u8 *)data);
             break;
         default:
             break;

@@ -9,6 +9,8 @@
 #define DS4 1
 
 #define MAX_BUFFER_SIZE 64 // Size of general purpose data buffer
+#define DS34BT_SCAN_MAX 8
+#define DS34BT_NAME_MAX 32
 
 #define PENDING    1
 #define SUCCESSFUL 0
@@ -61,6 +63,14 @@ typedef struct
     u16 rev;
 } __attribute__((packed)) hci_information_t;
 
+typedef struct
+{
+    u8 bdaddr[6];
+    u8 class_of_device[3];
+    u8 status;
+    char name[DS34BT_NAME_MAX];
+} ds34bt_scan_result_t;
+
 enum eDS34BTStatus {
     DS34BT_STATE_USB_DISCONNECTED = 0x00,
     DS34BT_STATE_USB_AUTHORIZED = 0x01,
@@ -100,12 +110,15 @@ enum eHCI {
     HCI_OGF_INFO_PARAM = (0x04 << 2),  // OGF: Informational Parameters
 
     /* HCI OpCode Command Field (OCF) */
+    HCI_OCF_INQUIRY = 0x01,                // OGF = 0x01
+    HCI_OCF_CREATE_CONNECTION = 0x05,      // OGF = 0x01
     HCI_OCF_DISCONNECT = 0x06,             // OGF = 0x01
     HCI_OCF_ACCEPT_CONNECTION = 0x09,      // OGF = 0x01
     HCI_OCF_REJECT_CONNECTION = 0x0A,      // OGF = 0x01
     HCI_OCF_CHANGE_CONNECTION_TYPE = 0x0F, // OGF = 0x01
     HCI_OCF_REMOTE_NAME = 0x19,            // OGF = 0x01
     HCI_OCF_LINK_KEY_REQUEST_REPLY = 0x0B, // OGF = 0x01
+    HCI_OCF_PIN_CODE_REQUEST_REPLY = 0x0D, // OGF = 0x01
 
     HCI_OCF_RESET = 0x03,                // OGF = 0x03
     HCI_OCF_WRITE_ACCEPT_TIMEOUT = 0x16, // OGF = 0x03
@@ -116,6 +129,8 @@ enum eHCI {
     HCI_OCF_READ_FEATURES = 0x03, // OGF = 0x04
 
     /* HCI events managed */
+    HCI_EVENT_INQUIRY_COMPLETE = 0x01,
+    HCI_EVENT_INQUIRY_RESULT = 0x02,
     HCI_EVENT_CONNECT_COMPLETE = 0x03,
     HCI_EVENT_CONNECT_REQUEST = 0x04,
     HCI_EVENT_DISCONN_COMPLETE = 0x05,
