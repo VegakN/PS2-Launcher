@@ -1248,7 +1248,12 @@ void scan_USB_mass(void)
 	int i, dd;
 	iox_stat_t chk_stat;
 	char mass_path[8] = "mass0:/";
-	if ((USB_mass_max_drives < 2)  //No need for dynamic lists with only one drive
+	/* Even when an already-loaded USBMASS driver limits us to one unit,
+	 * still probe mass0:/ explicitly.  This is common when wLaunchELF is
+	 * started from the same pendrive and the launcher has initialized USBD
+	 * before us.  The old early return left the mass: entry visible without
+	 * ever confirming that the device was mounted. */
+	if ((USB_mass_max_drives < 1)
 	    || (USB_mass_scanned && ((Timer() - USB_mass_scan_time) < 5000)))
 		return;
 
