@@ -125,6 +125,9 @@ static u8 link_key[] = // for ds4 authorisation
         0xC0, 0x7F, 0x12, 0xAA, 0xD9, 0x66, 0x3C, 0xCE};
 
 static u8 usb_buf[MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {0};
+static u8 xbox_poll_buf[MAX_PADS][MAX_BUFFER_SIZE + 32] __attribute((aligned(4))) = {{0}};
+static volatile u8 xbox_poll_state[MAX_PADS] = {0};
+static volatile int xbox_poll_result[MAX_PADS] = {1, 1};
 
 int usb_probe(int devId);
 int usb_connect(int devId);
@@ -140,6 +143,9 @@ static void DS3USB_init(int pad);
 static void readReport(u8 *data, int pad);
 static int LEDRumble(u8 *led, u8 lrum, u8 rrum, int pad);
 static int Rumble(u8 lrum, u8 rrum, int pad);
+static int xboxusb_is_input_packet(const u8 *data, int bytes);
+static void xboxusb_poll_cb(int resultCode, int bytes, void *arg);
+static void xboxusb_poll_thread(void *arg);
 
 ds34usb_device ds34pad[MAX_PADS];
 
@@ -276,6 +282,8 @@ static void usb_release(int pad)
     ds34pad[pad].pid = 0;
     ds34pad[pad].xbox_seq = 0;
     ds34pad[pad].status = DS34USB_STATE_DISCONNECTED;
+    xbox_poll_state[pad] = 0;
+    xbox_poll_result[pad] = 1;
 
     ds34pad[pad].data[0] = 0xFF;
     ds34pad[pad].data[1] = 0xFF;
@@ -298,6 +306,27 @@ static void usb_data_cb(int resultCode, int bytes, void *arg)
     usb_bytes_read = bytes;
 
     SignalSema(ds34pad[pad].sema);
+}
+
+static int xboxusb_is_input_packet(const u8 *data, int bytes)
+{
+    if (bytes <= 0)
+        return 0;
+    if (data[0] == 0x00)
+        return bytes >= ((data[1] == 0x01 && data[3] == 0xF0) ? 16 : 14);
+    if (data[0] == 0x20)
+        return bytes >= 18;
+    if (data[0] == 0x01)
+        return bytes >= 9;
+    return bytes >= 8;
+}
+
+static void xboxusb_poll_cb(int resultCode, int bytes, void *arg)
+{
+    int pad = (int)arg;
+
+    xbox_poll_result[pad] = resultCode == USB_RC_OK && xboxusb_is_input_packet(xbox_poll_buf[pad], bytes) ? USB_RC_OK : 1;
+    xbox_poll_state[pad] = 2;
 }
 
 static void usb_cmd_cb(int resultCode, int bytes, void *arg)
@@ -386,6 +415,46 @@ static int xboxusb_send_init(int pad)
 
     ds34pad[pad].status |= DS34USB_STATE_INIT_SENT;
     return 1;
+}
+
+/* XInput keeps an interrupt read pending while idle. Keep that transaction out
+ * of the EE RPC path so the file browser never waits on the GameSir dongle. */
+static void xboxusb_poll_thread(void *arg)
+{
+    int pad, ret, active, init_required;
+
+    while (1) {
+        active = 0;
+        for (pad = 0; pad < MAX_PADS; pad++) {
+            init_required = 0;
+            WaitSema(ds34pad[pad].sema);
+            if (ds34pad[pad].type == XBOX_USB &&
+                (ds34pad[pad].status & DS34USB_STATE_RUNNING) &&
+                ds34pad[pad].interruptEndp >= 0) {
+                active = 1;
+                if (!(ds34pad[pad].status & DS34USB_STATE_INIT_SENT)) {
+                    init_required = 1;
+                } else {
+                    if (xbox_poll_state[pad] == 2) {
+                        if (xbox_poll_result[pad] == USB_RC_OK)
+                            readReport(xbox_poll_buf[pad], pad);
+                        xbox_poll_state[pad] = 0;
+                    }
+
+                    if (xbox_poll_state[pad] == 0) {
+                        xbox_poll_state[pad] = 1;
+                        ret = UsbInterruptTransfer(ds34pad[pad].interruptEndp, xbox_poll_buf[pad], MAX_BUFFER_SIZE, xboxusb_poll_cb, (void *)pad);
+                        if (ret != USB_RC_OK)
+                            xbox_poll_state[pad] = 0;
+                    }
+                }
+            }
+            SignalSema(ds34pad[pad].sema);
+            if (init_required)
+                xboxusb_send_init(pad);
+        }
+        DelayThread(active ? 1000 : 16000);
+    }
 }
 
 static void usb_config_set(int result, int count, void *arg)
@@ -937,6 +1006,12 @@ void ds34usb_get_data(char *dst, int size, int port)
         return;
     }
 
+    if (ds34pad[port].type == XBOX_USB) {
+        mips_memcpy(dst, ds34pad[port].data, size);
+        SignalSema(ds34pad[port].sema);
+        return;
+    }
+
     // Initialization may wait for USB output; run it from the RPC thread,
     // never from the USBD configuration callback.
     if (ds34pad[port].type == XBOX_USB && !(ds34pad[port].status & DS34USB_STATE_INIT_SENT))
@@ -950,13 +1025,7 @@ void ds34usb_get_data(char *dst, int size, int port)
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_buf, MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
-        // XInput dongles keep the interrupt endpoint open even while idle.
-        // A 200 ms wait here blocks wLaunchELF's file browser and makes MC/USB
-        // navigation bounce back to the main screen. Keep GameSir reads bounded.
-        if (ds34pad[port].type == XBOX_USB)
-            TransferWaitTimeout(ds34pad[port].sema, 8000);
-        else
-            TransferWait(ds34pad[port].sema);
+        TransferWait(ds34pad[port].sema);
         if (usb_resulCode == USB_RC_OK) {
             readReport(usb_buf, port);
         } else if (ds34pad[port].type == XBOX_USB) {
@@ -1204,6 +1273,8 @@ int _start(int argc, char *argv[])
         ds34pad[pad].outEndp = -1;
         ds34pad[pad].enabled = (enable >> pad) & 1;
         ds34pad[pad].type = 0;
+        xbox_poll_state[pad] = 0;
+        xbox_poll_result[pad] = 1;
 
         ds34pad[pad].data[0] = 0xFF;
         ds34pad[pad].data[1] = 0xFF;
@@ -1225,7 +1296,7 @@ int _start(int argc, char *argv[])
         return MODULE_NO_RESIDENT_END;
     }
 
-    iop_thread_t rpc_th;
+    iop_thread_t rpc_th, poll_th;
 
     rpc_th.attr = TH_C;
     rpc_th.thread = rpc_thread;
@@ -1237,6 +1308,15 @@ int _start(int argc, char *argv[])
 
     if (thid > 0) {
         StartThread(thid, NULL);
+
+        poll_th.attr = TH_C;
+        poll_th.thread = xboxusb_poll_thread;
+        poll_th.priority = 55;
+        poll_th.stacksize = 0x1000;
+        poll_th.option = 0;
+        thid = CreateThread(&poll_th);
+        if (thid > 0)
+            StartThread(thid, NULL);
         return MODULE_RESIDENT_END;
     }
 
