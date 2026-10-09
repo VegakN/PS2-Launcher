@@ -677,6 +677,31 @@ static void guiGameShowBluetoothManager()
     }
 }
 
+void guiGameRestoreBluetoothPairs(void)
+{
+    config_set_t *configOPL = configGetByType(CONFIG_OPL);
+    int i, j;
+
+    for (i = 0; i < DS34BT_SCAN_MAX; i++) {
+        char key[32];
+        char saved[24];
+        unsigned int mac[6];
+        u8 bdaddr[6];
+
+        snprintf(key, sizeof(key), "bt_paired_%d", i);
+        if (configGetStrCopy(configOPL, key, saved, sizeof(saved)) != 0)
+            continue;
+
+        if (sscanf(saved, "%02x:%02x:%02x:%02x:%02x:%02x", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != 6)
+            continue;
+
+        for (j = 0; j < 6; j++)
+            bdaddr[j] = (u8)mac[j];
+
+        ds34bt_pair(bdaddr);
+    }
+}
+
 static int guiGamePadEmuUpdater(int modified)
 {
     int PadEmuMode, PadPort, PadEmuVib, PadEmuPort, PadEmuMtap, PadEmuMtapPort, PadEmuWorkaround;

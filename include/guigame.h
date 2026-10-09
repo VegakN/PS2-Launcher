@@ -16,6 +16,7 @@ void guiGameShowCheatConfig(void);
 
 #ifdef PADEMU
 void guiGameShowPadEmuConfig(int forceGlobal);
+void guiGameRestoreBluetoothPairs(void);
 void guiGameShowPadMacroConfig(int forceGlobal);
 void guiGameSavePadEmuGlobalConfig(config_set_t *configGame);
 int guiGameGetPadEmuGlobalController(void);

@@ -3201,6 +3201,9 @@ static void init(void)
         applyConfig(-1, -1, 0);
     } else {
         _loadConfig(); // load configs normally (including when booting from IGR reset combo)
+#ifdef PADEMU
+        guiGameRestoreBluetoothPairs();
+#endif
     }
 
 
