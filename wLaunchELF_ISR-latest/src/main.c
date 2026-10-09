@@ -1421,7 +1421,6 @@ static void loadUsbModules(void)
 
     loadUsbDModule();
     if (have_usbd && !have_usb_mass && (USB_mass_loaded = loadExternalModule("", NULL, 0))) {
-        delay(3);
         have_usb_mass = 1;
     } else if (have_usbd && !have_usb_mass) {
         ID = SifExecModuleBuffer(bdm_irx, size_bdm_irx, 0, NULL, &ret);
@@ -1430,7 +1429,6 @@ static void loadUsbModules(void)
 		DPRINTF(" [BDMFS_FATFS] ID=%d, ret=%d\n", ID, ret);
         ID = SifExecModuleBuffer(usbmass_bd_irx, size_usbmass_bd_irx, 0, NULL, &ret);
 		DPRINTF(" [USBMASS_BD] ID=%d, ret=%d\n", ID, ret);
-        delay(3);
         USB_mass_loaded = 1;
         have_usb_mass = 1;
     }
@@ -1439,6 +1437,7 @@ static void loadUsbModules(void)
     else
         USB_mass_max_drives = 1;  // else allow only one mass drive
 #ifdef DS34
+	delay(3);
 	loadDs34Modules();
 #endif
 #ifdef MX4SIO
@@ -1451,7 +1450,6 @@ static void loadUsbModules(void)
 {
 	loadUsbDModule();
 	if (have_usbd && !have_usb_mass && (USB_mass_loaded = loadExternalModule("USBMASS.IRX", &usb_mass_irx, size_usb_mass_irx))) {
-		delay(3);
 		have_usb_mass = 1;
 	}
 	if (USB_mass_loaded == 1)                       //if using the internal mass driver
@@ -1460,6 +1458,7 @@ static void loadUsbModules(void)
 		USB_mass_max_drives = 1;  //else allow only one mass drive
 
 #ifdef DS34
+	delay(3);
 	loadDs34Modules();
 #endif
 }
