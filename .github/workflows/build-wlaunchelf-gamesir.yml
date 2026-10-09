@@ -2,54 +2,52 @@ name: Build wLaunchELF GameSir
 
 on:
   push:
-    branches: ["**"]
+    branches: ["codex/opl-gamesir-vibration"]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-wlaunchelf:
-    # ps2dev:v1.0 uses a legacy MIPS assembler that crashes on newer runner kernels.
-    runs-on: ubuntu-22.04
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    container: ps2dev/ps2dev:v1.0
+    defaults:
+      run:
+        shell: sh
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          path: source
-          fetch-depth: 0
+      - name: Install build dependencies
+        run: apk add --no-cache make git zip
 
-      - name: Mark checkout safe for git version detection
-        run: git -C source config --local safe.directory "$GITHUB_WORKSPACE/source"
+      - name: Checkout source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          git clone --depth=1 --branch "$GITHUB_REF_NAME" "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" source
+          git -C source checkout --detach "$GITHUB_SHA"
 
       - name: Compile wLaunchELF with GameSir driver
-        run: >
-          docker run --rm
-          -v "$GITHUB_WORKSPACE:/workspace"
-          ps2dev/ps2dev:v1.0
-          sh -lc 'export PS2DEV=/usr/local/ps2dev PS2SDK=/usr/local/ps2dev/ps2sdk GSKIT=/usr/local/ps2dev/gsKit; export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2SDK/bin:$PATH"; set -eu; apk add --no-cache make git zip; builddir=$(mktemp -d); cp -a /workspace/source "$builddir/source"; cd "$builddir/source/wLaunchELF_ISR-latest"; git config --global --add safe.directory "$builddir/source"; set -o pipefail; attempt=1; until make rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1 2>&1 | tee /workspace/wle-build.log; do test "$attempt" -ge 3 && exit 1; attempt=$((attempt + 1)); done; test -s BOOT-DS34.ELF; cp BOOT-DS34.ELF /workspace/wLaunchELF-GameSir.ELF'
-
-      - name: Publish wLaunchELF compiler summary
-        if: failure()
+        working-directory: source/wLaunchELF_ISR-latest
         run: |
-          if [ -f wle-build.log ]; then
-            summary=$( { grep -n -i -E 'ds34usb|error:|fatal|undefined reference|no such file|not found|implicit declaration|collect2' wle-build.log || true; tail -n 40 wle-build.log; } | tail -n 180 | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
-            echo "::error title=wLaunchELF compiler output::$summary"
+          set -eu
+          make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1
+          test -s BOOT-DS34.ELF
+
+      - name: Publish compact wLaunchELF GameSir ELF
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          mkdir -p artifacts
+          cp wLaunchELF_ISR-latest/BOOT-DS34.ELF artifacts/wLaunchELF-GameSir.ELF
+          git add -f artifacts/wLaunchELF-GameSir.ELF
+          if git diff --cached --quiet; then
+            exit 0
           fi
-
-      - name: Stage generated wLaunchELF ELF
-        run: test -s wLaunchELF-GameSir.ELF
-
-      - name: Upload wLaunchELF build log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: wLaunchELF-GameSir-build-log
-          path: wle-build.log
-
-      - name: Upload wLaunchELF GameSir ELF
-        uses: actions/upload-artifact@v4
-        with:
-          name: wLaunchELF-GameSir
-          path: wLaunchELF-GameSir.ELF
-          if-no-files-found: error
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Publish wLaunchELF GameSir build"
+          git push "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" "HEAD:$GITHUB_REF_NAME"
