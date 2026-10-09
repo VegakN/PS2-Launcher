@@ -2617,13 +2617,19 @@ void menuHandleInputMenu()
                 sfxPlay(SFX_CURSOR);
                 if (gPS5TempVMode == 0) gPS5TempVMode = 11;
                 else if (gPS5TempVMode == 11) gPS5TempVMode = 10;
-                else if (gPS5TempVMode == 10) gPS5TempVMode = 3;
+                else if (gPS5TempVMode == 10) gPS5TempVMode = 9;
+                else if (gPS5TempVMode == 9) gPS5TempVMode = 8;
+                else if (gPS5TempVMode == 8) gPS5TempVMode = 5;
+                else if (gPS5TempVMode == 5) gPS5TempVMode = 3;
                 else gPS5TempVMode = 0;
             }
             if (getKeyOn(KEY_RIGHT)) {
                 sfxPlay(SFX_CURSOR);
                 if (gPS5TempVMode == 0) gPS5TempVMode = 3;
-                else if (gPS5TempVMode == 3) gPS5TempVMode = 10;
+                else if (gPS5TempVMode == 3) gPS5TempVMode = 5;
+                else if (gPS5TempVMode == 5) gPS5TempVMode = 8;
+                else if (gPS5TempVMode == 8) gPS5TempVMode = 9;
+                else if (gPS5TempVMode == 9) gPS5TempVMode = 10;
                 else if (gPS5TempVMode == 10) gPS5TempVMode = 11;
                 else gPS5TempVMode = 0;
             }

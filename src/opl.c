@@ -2059,6 +2059,33 @@ static int coverIsLocalGameSupport(item_list_t *support)
     return support->mode == HDD_MODE || support->mode == ETH_MODE;
 }
 
+/* SMB ISO lists initially use the ISO filename as the startup value.  Artwork
+ * is keyed by the executable serial (for example SLUS_123.45), so resolve the
+ * SYSTEM.CNF value before building cover paths or download URLs. */
+static int coverStartupLooksResolved(const char *startup)
+{
+    return startup != NULL && strlen(startup) == GAME_STARTUP_MAX - 1 && startup[4] == '_' && startup[8] == '.';
+}
+
+static char *coverGetStartup(item_list_t *support, int id)
+{
+    base_game_info_t *game;
+    char *prefix;
+
+    if (support == NULL || support->itemGetStartup == NULL)
+        return NULL;
+
+    if (support->mode == ETH_MODE && support->itemGet != NULL) {
+        game = (base_game_info_t *)support->itemGet(support, id);
+        prefix = support->itemGetPrefix != NULL ? support->itemGetPrefix(support) : NULL;
+        if (game != NULL && game->format == GAME_FORMAT_ISO && prefix != NULL && prefix[0] != '\0' && gNetworkStartup == 0 &&
+            !coverStartupLooksResolved(game->startup))
+            sbResolveISOStartup(game, prefix, "\\");
+    }
+
+    return support->itemGetStartup(support, id);
+}
+
 static int ps5IsMergedGameSupport(item_list_t *support)
 {
     if (coverIsLocalGameSupport(support))
@@ -2521,7 +2548,7 @@ static void coverSetDownloadErrorMessage(int errorCode)
 static int coverGameNeedsDownload(item_list_t *support, int id)
 {
     char *prefix = support->itemGetPrefix != NULL ? support->itemGetPrefix(support) : NULL;
-    char *startup = support->itemGetStartup(support, id);
+    char *startup = coverGetStartup(support, id);
 
     if (startup == NULL || startup[0] == '\0')
         return 0;
@@ -2646,6 +2673,21 @@ static void oplDownloadMissingGameCovers(void)
             snprintf(gPS5CoverDownloadUrl, sizeof(gPS5CoverDownloadUrl), "PS2 has no internet connection.");
             return;
         }
+
+        /* The SMB game list normally creates ART/LOGO during ETH startup.
+         * Recreate the standard folders here as well because the cover worker
+         * can be started while the list is already mounted but before a
+         * folder refresh has completed. */
+        if (gNetworkStartup == 0) {
+            for (mode = 0; mode < MODE_COUNT; mode++) {
+                support = list_support[mode].support;
+                if (support != NULL && support->enabled && support->mode == ETH_MODE && support->itemGetPrefix != NULL) {
+                    prefix = support->itemGetPrefix(support);
+                    if (prefix != NULL && prefix[0] != '\0')
+                        sbCreateFolders(prefix, 0);
+                }
+            }
+        }
     }
 
     snprintf(gPS5CoverDownloadUrl, sizeof(gPS5CoverDownloadUrl), "Downloading...");
@@ -2667,7 +2709,7 @@ static void oplDownloadMissingGameCovers(void)
                 return;
             }
 
-            startup = support->itemGetStartup(support, id);
+            startup = coverGetStartup(support, id);
             title = support->itemGetName != NULL ? support->itemGetName(support, id) : startup;
             if (startup == NULL || startup[0] == '\0')
                 continue;

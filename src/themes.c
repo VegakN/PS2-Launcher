@@ -3636,6 +3636,9 @@ static void drawPS5Launcher(struct menu_list *menu, struct submenu_list *item, s
         // 1. Draw Resolution label and bracketed value
         const char *resText = "Standard";
         if (gPS5TempVMode == 3) resText = "Progressive 480p";
+        else if (gPS5TempVMode == 5) resText = "VGA 640x480p";
+        else if (gPS5TempVMode == 8) resText = "EDTV 704x480p";
+        else if (gPS5TempVMode == 9) resText = "EDTV 704x576p";
         else if (gPS5TempVMode == 10) resText = "720p";
         else if (gPS5TempVMode == 11) resText = "1080i";
 
