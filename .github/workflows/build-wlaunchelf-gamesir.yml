@@ -32,7 +32,7 @@ jobs:
         working-directory: source/wLaunchELF_ISR-latest
         run: |
           set -eu
-          make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=1
+          make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=0
           test -s BOOT-DS34.ELF
 
       - name: Publish compact wLaunchELF GameSir ELF
