@@ -33,7 +33,7 @@ jobs:
         run: |
           set -eu
           make --trace rebuild DS34=1 ETH=1 EXFAT=0 IOP_RESET=0
-          test -s BOOT-DS34.ELF
+          test -s BOOT-DS34-NO_IOP_RESET.ELF
 
       - name: Publish compact wLaunchELF GameSir ELF
         working-directory: source
@@ -42,7 +42,7 @@ jobs:
         run: |
           set -eu
           mkdir -p artifacts
-          cp wLaunchELF_ISR-latest/BOOT-DS34.ELF artifacts/wLaunchELF-GameSir.ELF
+          cp wLaunchELF_ISR-latest/BOOT-DS34-NO_IOP_RESET.ELF artifacts/wLaunchELF-GameSir.ELF
           git add -f artifacts/wLaunchELF-GameSir.ELF
           if git diff --cached --quiet; then
             exit 0
