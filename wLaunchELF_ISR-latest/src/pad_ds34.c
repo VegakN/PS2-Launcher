@@ -8,7 +8,7 @@
 #include <time.h>
 
 // Pad polling time in HSync cycles
-#define POLLING_TIME ((10 * 15734) / 1000)
+#define POLLING_TIME ((16 * 15734) / 1000)
 
 
 static char padBuf_t[2][256] __attribute__((aligned(64)));
@@ -124,7 +124,9 @@ void padPollingInit(void)
 	th_attr.stack = stack;
 	th_attr.stack_size = 4096;
 	th_attr.gp_reg = &_gp;
-	th_attr.initial_priority = 2;
+	/* Keep controller polling below file-system work. The original priority of
+	 * 2 could starve memory-card and USB I/O when an XInput dongle was idle. */
+	th_attr.initial_priority = 64;
 	th_attr.attr = th_attr.option = 0;
 	
 	isRunning=1;

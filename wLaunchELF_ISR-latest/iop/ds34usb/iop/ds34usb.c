@@ -20,6 +20,7 @@ IRX_ID("ds34usb", 1, 1);
 #define MAX_PADS 2
 
 static void TransferWait(int sema);
+static void TransferWaitTimeout(int sema, u32 timeout_lo);
 
 #define XBOX_VENDOR_MICROSOFT 0x045E
 #define XBOXUSB_INPUT_PACKET  0x20
@@ -855,9 +856,14 @@ static unsigned int timeout(void *arg)
 
 static void TransferWait(int sema)
 {
+    TransferWaitTimeout(sema, 200000);
+}
+
+static void TransferWaitTimeout(int sema, u32 timeout_lo)
+{
     iop_sys_clock_t cmd_timeout;
 
-    cmd_timeout.lo = 200000;
+    cmd_timeout.lo = timeout_lo;
     cmd_timeout.hi = 0;
 
     if (SetAlarm(&cmd_timeout, timeout, (void *)sema) == 0) {
@@ -944,7 +950,13 @@ void ds34usb_get_data(char *dst, int size, int port)
     ret = UsbInterruptTransfer(ds34pad[port].interruptEndp, usb_buf, MAX_BUFFER_SIZE, usb_data_cb, (void *)port);
 
     if (ret == USB_RC_OK) {
-        TransferWait(ds34pad[port].sema);
+        // XInput dongles keep the interrupt endpoint open even while idle.
+        // A 200 ms wait here blocks wLaunchELF's file browser and makes MC/USB
+        // navigation bounce back to the main screen. Keep GameSir reads bounded.
+        if (ds34pad[port].type == XBOX_USB)
+            TransferWaitTimeout(ds34pad[port].sema, 8000);
+        else
+            TransferWait(ds34pad[port].sema);
         if (usb_resulCode == USB_RC_OK) {
             readReport(usb_buf, port);
         } else if (ds34pad[port].type == XBOX_USB) {
