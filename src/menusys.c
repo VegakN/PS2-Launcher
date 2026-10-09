@@ -3002,6 +3002,15 @@ void menuHandleInputMain()
         }
 
         if (gPS5ActiveTab == 2) {
+            /* Apps can be opened directly with R1.  Start the network session
+             * here as well; otherwise the first scan runs while SMB is still
+             * disconnected and is incorrectly kept as the final result. */
+            if (gETHStartMode != START_MODE_DISABLED && gPS5SmbPromptState == 0 && ps5CanStartSmbLoad()) {
+                item_list_t *eth = ethGetObject(0);
+                if (eth != NULL && (!eth->enabled || gNetworkStartup != 0))
+                    ps5QueueSmbLoad();
+            }
+
             if (!gPS5AppsScanned && !gPS5AppsLoading)
                 ps5QueueAppsScan(0);
 
