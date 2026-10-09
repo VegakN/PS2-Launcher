@@ -35,6 +35,7 @@ static UsbDriver chrg_driver = {NULL, NULL, "ds34chrg", chrg_probe, chrg_connect
 
 static void ds34pad_clear(int pad);
 static void ds34pad_init();
+static int hci_remote_name(u8 *bdaddr);
 
 static ds34bt_scan_result_t scan_results[DS34BT_SCAN_MAX];
 static u8 scan_state = 0;
@@ -412,7 +413,6 @@ static void hid_readReport(u8 *data, int bytes, int pad);
 
 static int l2cap_connection_request(u16 handle, u8 rxid, u16 scid, u16 psm);
 static int hci_reset();
-static int hci_remote_name(u8 *bdaddr);
 static int hci_inquiry();
 static int hci_create_connection(u8 *bdaddr, u8 page_scan_repetition, u16 clock_offset);
 static int hci_pin_code_request_reply(u8 *bdaddr);
